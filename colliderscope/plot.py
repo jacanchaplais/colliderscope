@@ -82,7 +82,6 @@ class ShowerDAG:
         leaf_shape = 'star'
         parton_edges = []
         for parton, parton_data in partons.items():
-            print(parton)
             colour = colours[parton]
             for num, pcl in parton_data.iterrows():
                 node = int(pcl['in_edge'])
