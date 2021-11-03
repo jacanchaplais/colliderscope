@@ -56,15 +56,32 @@ class ShowerDAG:
         df = self.__df.copy()
         df['name'] = self.__pdg_to_name(df['pdg'])
         edges_out = df.pivot_table(
-                'name', index='in_edge',
-                aggfunc=lambda x: self.__vtx_title(x, out=True)
+                'name',
+                index='in_edge',
+                aggfunc=lambda x: self.__vtx_title(x, out=True),
                 )
         edges_in = df.pivot_table(
-                'name', index='out_edge',
-                aggfunc=lambda x: self.__vtx_title(x, out=False)
+                ['name', 'final'],
+                index='out_edge',
+                aggfunc={
+                    'name': lambda x: self.__vtx_title(x, out=False),
+                    'final': lambda x: x.size == 1 and x.all(),
+                    }
                 )
+        final = edges_in['final']
         node_df = edges_out + edges_in
-        node_df.index.name = 'node'
+        node_df['final'] = final
+        node_df.index.name = 'id'
+        node_df.rename(columns={'name': 'title'}, inplace=True)
+        node_df['size'] = 10
+        node_df['shape'] = final.apply(
+                lambda x: 'star' if x == True else 'dot')
+        root_id = int(node_df.index.values[node_df['final'].isnull()])
+        node_df.loc[(root_id, 'final')] = False
+        node_df.loc[(root_id, 'title')] = 'start of event'
+        node_df.loc[(root_id, 'shape')] = 'square'
+        node_df.loc[(root_id, 'size')] = 20
+        return node_df
         # node_df = edges_in.join(edges_out, lsuffix='_in', rsuffix='_out')
         # node_df.index.name = 'id'
         # node_df = node_df.dropna()
@@ -73,7 +90,10 @@ class ShowerDAG:
         # return title_series
 
     def __pdg_to_name(self, pdgs) -> list:
-        pdg = tuple(pdgs)
+        if isinstance(pdgs, int):
+            pdgs = (pdgs,)
+        else:
+            pdgs = tuple(pdgs)
         name = self.__pdg_lookup.properties(pdgs=pdgs, props=['name'])
         name = name['name']
         return name
@@ -105,11 +125,14 @@ class ShowerDAG:
                 in_pdgs = in_edges['pdg']
                 out_edges = self.__df.query('@node == in_edge')
                 out_pdgs = out_edges['pdg']
-                title = self.__vtx_title(pdgs_in=in_pdgs, pdgs_out=out_pdgs)
+                title = self.__vtx_title(names=self.__pdg_to_name(in_pdgs), out=False)
+                title += str(self.__br
+                             + self.__vtx_title(names=self.__pdg_to_name(in_pdgs), out=False)
+                             )
                 label = ' '
                 if pcl['final']:
                     leaf_node = next_node
-                    leaf_label = self.__pdg_to_name(pcl['pdg'])
+                    leaf_label = self.__pdg_to_name(pcl['pdg'])[-1]
                     shower.add_node(leaf_node, label=leaf_label,
                                     shape=leaf_shape, color=colour)
                 shower.add_node(node, label=label, title=title, shape=shape,
@@ -119,6 +142,8 @@ class ShowerDAG:
             parton_edges += [zip(in_edge, out_edge)]
         for edges in parton_edges:
             shower.add_edges(edges)
+        # print(shower.nodes)
+        # print(shower.edges)
         vis = shower.show('shower.html')
         self.shower = shower
         if notebook == True:
