@@ -44,27 +44,42 @@ class ShowerDAG:
     def __heading(self, text):
         return '<b>' + text + ':</b>' + self.__br
 
-    def __vtx_title(self, pdgs_in, pdgs_out):
-        num_in = len(pdgs_in)
-        num_out = len(pdgs_out)
-        names_in = map(self.__pdg_to_name, pdgs_in)
-        names_out = map(self.__pdg_to_name, pdgs_out)
+    def __vtx_title(self, names, out=False):
+        num = len(names)
+        way = 'out' if out == True else 'in'
         return str(
-            self.__heading(f'particles in ({num_in})')
-            + self.__pcl_listing(names_in)
-            + self.__br
-            + self.__heading(f'particles out ({num_out})')
-            + self.__pcl_listing(names_out)
+            self.__heading(f'particles {way} ({num})')
+            + self.__pcl_listing(names)
             )
 
-    def __pdg_to_name(self, pdg) -> str:
-        pdg = list([pdg])
-        name = self.__pdg_lookup.properties(pdgs=pdg, props=['name'])
-        name = name['name']
-        return name.item()
+    def vis_nodes(self):
+        df = self.__df.copy()
+        df['name'] = self.__pdg_to_name(df['pdg'])
+        edges_out = df.pivot_table(
+                'name', index='in_edge',
+                aggfunc=lambda x: self.__vtx_title(x, out=True)
+                )
+        edges_in = df.pivot_table(
+                'name', index='out_edge',
+                aggfunc=lambda x: self.__vtx_title(x, out=False)
+                )
+        node_df = edges_out + edges_in
+        node_df.index.name = 'node'
+        # node_df = edges_in.join(edges_out, lsuffix='_in', rsuffix='_out')
+        # node_df.index.name = 'id'
+        # node_df = node_df.dropna()
+        # pcl_names = node_df.apply(title, axis=0)
+        # title_series = title_series.apply(title, axis=1)
+        # return title_series
 
-    def to_pyvis(self):
-        shower = self.__Network('640px', '960px', notebook=True, directed=True)
+    def __pdg_to_name(self, pdgs) -> list:
+        pdg = tuple(pdgs)
+        name = self.__pdg_lookup.properties(pdgs=pdgs, props=['name'])
+        name = name['name']
+        return name
+
+    def to_pyvis(self, notebook=True):
+        shower = self.__Network('640px', '960px', notebook=notebook, directed=True)
         partons = {mask_key: self.__df.query(mask_key)
                    for mask_key in self.__mask_keys
                    }
@@ -104,4 +119,7 @@ class ShowerDAG:
             parton_edges += [zip(in_edge, out_edge)]
         for edges in parton_edges:
             shower.add_edges(edges)
-        shower.show('shower.html')
+        vis = shower.show('shower.html')
+        self.shower = shower
+        if notebook == True:
+            return vis
