@@ -104,4 +104,4 @@ class ShowerDAG:
             parton_edges += [zip(in_edge, out_edge)]
         for edges in parton_edges:
             shower.add_edges(edges)
-        shower.show('shower.html')
+        return shower.show('shower.html')
