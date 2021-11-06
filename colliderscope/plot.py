@@ -80,8 +80,11 @@ class ShowerDAG:
         df['name'] = self.__pdg_to_name(df['pdg'])
         # node colours
         mask_keys = self.__mask_keys
-        colors = {ma_key: self.__Color(pick_for=ma_key).get_web()
-                  for ma_key in mask_keys}
+        red_color = self.__Color('red') 
+        blue_color = self.__Color('blue') 
+        color_range = red_color.range_to(blue_color, len(mask_keys))
+        colors = {ma_key: color.get_web()
+                  for ma_key, color in zip(mask_keys, color_range)}
         # construct vertex titles and whether vertices are leaves
         aggfuncs = {'name': lambda x: self.__vtx_title(x, out=True)}
         hrtg_agg_funcs = {ma_key: lambda x: x.any() for ma_key in mask_keys}
