@@ -8,6 +8,7 @@ class ShowerDAG:
     from pyvis.network import Network as __Network
     from mcpid.lookup import PdgRecords as __PdgRecords
     from colour import Color as __Color
+    import networkx as __nx
 
 
     def __init__(self, edges: np.ndarray, pdg: np.ndarray, pt: np.ndarray,
@@ -73,7 +74,21 @@ class ShowerDAG:
         hex_mix = self.__rgb_to_hex_column(rgb_mix)
         return hex_mix
 
-    def _vis_nodes(self):
+    def __kamada_kawai_df(self):
+        edges = self.__df[['in_edge', 'out_edge']]
+        edges = edges.to_numpy()
+        shower = self.__nx.convert.from_edgelist(edges)
+        num_nodes = len(np.unique(edges))
+        diameter_scale = 4.0 * float(num_nodes)
+        pos = self.__nx.drawing.layout.kamada_kawai_layout(
+                shower, scale=diameter_scale)
+        pos_df = self.__pd.DataFrame(pos)
+        pos_df = pos_df.T
+        pos_df.index.name = 'id'
+        pos_df = pos_df.rename(columns={0: 'x', 1: 'y'})
+        return pos_df
+
+    def _vis_nodes(self, kamada_kawai=False):
         # prevent accidentally mutation of instance data
         df = self.__df.copy()
         # add column of names
@@ -148,6 +163,9 @@ class ShowerDAG:
         node_df.loc[(root_id, 'shape')] = 'square'
         node_df.loc[(root_id, 'size')] = 20
         node_df.drop(columns='final', inplace=True)
+        if kamada_kawai == True:
+            pos_df = self.__kamada_kawai_df()
+            node_df = node_df.join(pos_df)
         node_df.reset_index(inplace=True)
         return node_df.to_dict('records')
 
