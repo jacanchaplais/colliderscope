@@ -184,11 +184,15 @@ class ShowerDAG:
         name = name['name']
         return name
 
-    def to_pyvis(self, notebook=True):
-        shower = self.__Network('640px', '960px', notebook=notebook, directed=True)
+    def to_pyvis(self, name: str, notebook: bool=True):
+        fname = f'{name}.html'
+        shower = self.__Network(
+                '640px', '960px', notebook=notebook, directed=True)
         shower.nodes = self._vis_nodes()
         shower.edges = self._vis_edges()
-        vis = shower.show('shower.html')
         self.shower = shower
         if notebook == True:
+            vis = shower.show(fname)
             return vis
+        else:
+            shower.save_graph(fname)
