@@ -40,6 +40,7 @@ def eta_phi(
     df['name'] = vis_pcls.pdg.name
     df['size'] = pt_size(vis_pcls.pmu.pt)
     # label the particles according to their mask name
+    df['parent'] = ''
     if parent_masks is not None:
         df['parent'] = 'background'
         for mask_name, parent_mask in parent_masks.items():
