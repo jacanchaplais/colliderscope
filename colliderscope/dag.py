@@ -6,12 +6,11 @@ import numpy as np
 
 
 class ShowerDAG:
-    import pandas as __pd
-    from pyvis.network import Network as __Network
-    from mcpid.lookup import PdgRecords as __PdgRecords
-    from colour import Color as __Color
-    import networkx as __nx
-
+    import pandas as __pd  # type: ignore
+    from pyvis.network import Network as __Network  # type: ignore
+    from mcpid.lookup import PdgRecords as __PdgRecords  # type: ignore
+    from colour import Color as __Color  # type: ignore
+    import networkx as __nx  # type: ignore
 
     def __init__(self, edges: np.ndarray, pdg: np.ndarray, pt: np.ndarray,
                  final: np.ndarray, masks: Optional[Dict] = None):
@@ -160,7 +159,7 @@ class ShowerDAG:
         # set visualisation defaults for nodes
         node_df['size'] = 10
         node_df['shape'] = final.apply(
-                lambda x: 'star' if x == True else 'dot')
+                lambda x: 'star' if x is True else 'dot')
         # settings for root node (start of event)
         root_id = int(node_df.index.values[node_df['final'].isnull()])
         node_df.loc[(root_id, 'final')] = False
@@ -168,7 +167,7 @@ class ShowerDAG:
         node_df.loc[(root_id, 'shape')] = 'square'
         node_df.loc[(root_id, 'size')] = 20
         node_df.drop(columns='final', inplace=True)
-        if kamada_kawai == True:
+        if kamada_kawai is True:
             pos_df = self.__kamada_kawai_df()
             node_df = node_df.join(pos_df)
         node_df.reset_index(inplace=True)
@@ -193,7 +192,7 @@ class ShowerDAG:
                  name: str,
                  width: str = "100%",
                  height: str = "750px",
-                 notebook: bool=True):
+                 notebook: bool = True):
         fname = f'{name}.html'
         shower = self.__Network(
                 height=height,
@@ -203,7 +202,7 @@ class ShowerDAG:
         shower.nodes = self._vis_nodes()
         shower.edges = self._vis_edges()
         self.shower = shower
-        if notebook == True:
+        if notebook is True:
             vis = shower.show(fname)
             return vis
         else:
