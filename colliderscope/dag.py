@@ -1,4 +1,6 @@
+from typing import Optional, Dict
 import textwrap
+from random import shuffle
 
 import numpy as np
 
@@ -12,14 +14,16 @@ class ShowerDAG:
 
 
     def __init__(self, edges: np.ndarray, pdg: np.ndarray, pt: np.ndarray,
-                 final: np.ndarray, masks: dict = dict()):
+                 final: np.ndarray, masks: Optional[Dict] = None):
+        if masks is None:
+            masks = dict()
         data = {'in_edge': edges['in'],
                 'out_edge': edges['out'],
                 'pt': pt,
                 'final': final,
                 'pdg': pdg,
                 'background': False,
-               }
+                }
         data.update(masks)
         self.__mask_keys = list(masks.keys())
         self.__df = self.__pd.DataFrame(data)
@@ -48,7 +52,7 @@ class ShowerDAG:
 
     def __vtx_title(self, names, out=False):
         num = len(names)
-        way = 'out' if out == True else 'in'
+        way = 'out' if out is True else 'in'
         return str(
             self.__heading(f'particles {way} ({num})')
             + self.__pcl_listing(names)
@@ -70,7 +74,7 @@ class ShowerDAG:
         rgb_cols = [self.__hex_to_rgb_column(hex_col) for hex_col in df_cols]
         rgb_sum = np.sum(rgb_cols, axis=0)
         norm = np.linalg.norm(rgb_sum, axis=1, keepdims=True)
-        rgb_mix = np.divide(rgb_sum, norm, where=(np.abs(norm)>self.__eps))
+        rgb_mix = np.divide(rgb_sum, norm, where=(np.abs(norm) > self.__eps))
         hex_mix = self.__rgb_to_hex_column(rgb_mix)
         return hex_mix
 
@@ -97,7 +101,8 @@ class ShowerDAG:
         mask_keys = self.__mask_keys
         red_color = self.__Color('red') 
         blue_color = self.__Color('blue') 
-        color_range = red_color.range_to(blue_color, len(mask_keys))
+        color_range = list(red_color.range_to(blue_color, len(mask_keys)))
+        shuffle(color_range)
         colors = {ma_key: color.get_web()
                   for ma_key, color in zip(mask_keys, color_range)}
         # construct vertex titles and whether vertices are leaves
@@ -184,10 +189,17 @@ class ShowerDAG:
         name = name['name']
         return name
 
-    def to_pyvis(self, name: str, notebook: bool=True):
+    def to_pyvis(self,
+                 name: str,
+                 width: str = "100%",
+                 height: str = "750px",
+                 notebook: bool=True):
         fname = f'{name}.html'
         shower = self.__Network(
-                '640px', '960px', notebook=notebook, directed=True)
+                height=height,
+                width=width,
+                notebook=notebook,
+                directed=True)
         shower.nodes = self._vis_nodes()
         shower.edges = self._vis_edges()
         self.shower = shower
