@@ -31,7 +31,7 @@ def eta_phi(
     if pt_min is not None:
         vis_mask['pt'] = pcls.pmu.pt > pt_min
     # TODO: add edge case handling for when no masking applied
-    vis_pcls = pcls[vis_mask]
+    vis_pcls = pcls[vis_mask.data]
     # format event into dataframe
     df = pd.DataFrame()
     df['pt'] = vis_pcls.pmu.pt
