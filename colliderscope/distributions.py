@@ -23,7 +23,7 @@ class Align(Enum):
 class Histogram:
     """Data structure for maintaining a constant memory, pre-binned
     histogram of particle multiplicities.
-    
+
     Parameters
     ----------
     num_bins : int
@@ -60,7 +60,7 @@ class Histogram:
     counts: np.ndarray = field(init=False)
     bin_edges: np.ndarray = field(init=False)
     _total: int = field(init=False, repr=False, default=0)
-    
+
     def __post_init__(self):
         self.align = Align(self._align)
         self.x_range = self.window
@@ -75,7 +75,7 @@ class Histogram:
         self.counts = np.zeros(self.num_bins, dtype='<i')
         self.bin_edges = np.linspace(*self.x_range, self.num_bins + 1)
         self.bin_edges = self.bin_edges.squeeze()
-    
+
     def update(self, val: float) -> None:
         """Records a new value to the binned counts."""
         self._total += 1
@@ -96,7 +96,7 @@ class Histogram:
 def breit_wigner_pdf(
         energy: npt.ArrayLike, mass_centre: float, width: float) -> np.ndarray:
     """Returns a Breit-Wigner probability density function.
-    
+
     Parameters
     ----------
     energy : ndarray
