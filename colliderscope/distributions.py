@@ -10,6 +10,8 @@ from enum import Enum
 from typing import Tuple, Optional
 
 import numpy as np
+import numpy.typing as npt
+from scipy.stats import cauchy
 
 
 class Align(Enum):
@@ -89,3 +91,20 @@ class Histogram:
         """Provides tuple of bin centers and count density."""
         return ((self.bin_edges[1:] + self.bin_edges[:-1]) / 2.0,
                 self.counts / self._total)
+
+
+def breit_wigner_pdf(
+        energy: npt.ArrayLike, mass_centre: float, width: float) -> np.ndarray:
+    """Returns a Breit-Wigner probability density function.
+    
+    Parameters
+    ----------
+    energy : ndarray
+        Energy domain over which the density is calculated.
+    mass_center : float
+        Central position of the mass peak.
+    width : float
+        The half-maximum-height width of the distribution.
+    """
+    bw: np.ndarray = cauchy.pdf(x=energy, loc=mass_centre, scale=(width / 2.0))
+    return bw
