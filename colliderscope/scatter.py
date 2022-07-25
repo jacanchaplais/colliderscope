@@ -1,12 +1,14 @@
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+if TYPE_CHECKING:
+    from plotly.graph_objs._figure import Figure as PlotlyFigure
 import graphicle as gcl
 
 
-def pt_size(pt):
+def pt_size(pt: np.ndarray) -> float:
     log_pt = np.log(pt)
     size = (log_pt - np.min(log_pt)) / (np.max(log_pt) - np.min(log_pt))
     size = size + 0.1
@@ -20,7 +22,7 @@ def eta_phi(
         parent_masks: Optional[Dict[str, np.ndarray]] = None,
         eta_max: Optional[float] = 2.5,
         pt_min: Optional[float] = 0.5,
-        ) -> None:
+        ) -> "PlotlyFigure":
     pcls = gcl.ParticleSet.from_numpy(pmu=pmu, pdg=pdg, final=final)
     # mask for only observable particles
     vis_mask = gcl.MaskGroup()
@@ -36,7 +38,7 @@ def eta_phi(
     df = pd.DataFrame()
     df['pt'] = vis_pcls.pmu.pt
     df['eta'] = vis_pcls.pmu.eta
-    df['phi'] = vis_pcls.pmu.phi
+    df['phi'] = vis_pcls.pmu.phi / np.pi
     df['name'] = vis_pcls.pdg.name
     df['size'] = pt_size(vis_pcls.pmu.pt)
     # label the particles according to their mask name
@@ -47,6 +49,10 @@ def eta_phi(
             vis_parent_mask = parent_mask[vis_mask.data]
             df.loc[(vis_parent_mask, 'parent')] = mask_name
     # create and display figure
-    fig = px.scatter(df, x='eta', y='phi', color='parent', symbol='parent',
-                     size='size', hover_data=['size', 'pt', 'name'])
-    fig.show()
+    fig: "PlotlyFigure" = px.scatter(
+            df, x='eta', y='phi', color='parent', symbol='parent',
+            size='size', hover_data=['size', 'pt', 'name'])
+    fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
+    fig.update_xaxes(title_text=r"$\eta$")
+    return fig
+
