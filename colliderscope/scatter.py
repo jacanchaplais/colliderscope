@@ -49,4 +49,4 @@ def eta_phi(
     # create and display figure
     fig = px.scatter(df, x='eta', y='phi', color='parent', symbol='parent',
                      size='size', hover_data=['size', 'pt', 'name'])
-    fig.show()
+    return fig
