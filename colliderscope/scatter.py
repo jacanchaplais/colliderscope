@@ -55,4 +55,3 @@ def eta_phi(
     fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
     fig.update_xaxes(title_text=r"$\eta$")
     return fig
-
