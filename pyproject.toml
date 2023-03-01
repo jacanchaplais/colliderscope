@@ -1,6 +1,77 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm>=6.2", "pip>=21.1"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "colliderscope"
+dynamic = ["version"]
+authors = [{name = "Jacan Chaplais"}]
+maintainers = [{name = "Jacan Chaplais"}]
+description = "Plotting tools for Monte-Carlo particle showers."
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.8"
+license = {file = "LICENSE.txt", text = "BSD 3-Clause License"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "numpy >=1.21.0",
+    "pandas",
+    "scipy",
+    "pyvis <=0.1.9",
+    "colour",
+    "webcolors",
+    "graphicle >=0.2.4",
+    "plotly",
+    "more-itertools >=2.1",
+]
+
+[project.urls]
+repository = "https://github.com/jacanchaplais/colliderscope"
+documentation = "https://colliderscope.readthedocs.io"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit ==2.19.0",
+    "flake8 ==3.9.2",
+    "pytest ==6.2.5",
+    "pytest-cov ==2.12.1",
+    "mypy ==0.910",
+]
 
 [tool.setuptools_scm]
 write_to = "colliderscope/_version.py"
+
+[tool.black]
+line-length = 79
+
+[tool.pytest.ini_options]
+addopts = "--cov=colliderscope"
+testpaths = [
+    "tests",
+]
+
+[tool.mypy]
+mypy_path = "colliderscope"
+check_untyped_defs = true
+disallow_any_generics = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+no_implicit_reexport = true
+
+[tool.pyright]
+include = ["colliderscope"]
+exclude = ["**/node_modules", "**/__pycache__"]
+defineConstant = { DEBUG = true }
+reportMissingImports = true
+reportMissingTypeStubs = false
+pythonVersion = "3.8"
+pythonPlatform = "Linux"
