@@ -611,3 +611,42 @@ def eta_phi_scatter(
     fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
     fig.update_xaxes(title_text=r"$\eta$")
     return fig
+
+
+def histogram_figure(
+    hist: Histogram,
+    hist_label: str,
+    x_label: str = "x",
+    y_label: str = "Probability density",
+    overlays: ty.Optional[ty.Dict[str, base.DoubleVector]] = None,
+) -> "PlotlyFigure":
+    """
+
+    Parameters
+    ----------
+    hist : Histogram
+        Histogram data to render.
+    hist_label : str
+        Label for the histogram in the plot legend.
+    x_label, y_label : str
+        Axis labels.
+    overlays : dict[str, ndarray[float64]], optional
+        Additional PDFs to overlay on the same plot. Keys are the labels
+        displayed in the plot legend, and values are densities
+        corresponding to the same x-bins of ``hist``. Default is
+        ``None``.
+    """
+    data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
+    if overlays is not None:
+        data_map.update(overlays)
+    data = pd.DataFrame(data_map)
+    fig = px.bar(
+        data,
+        x=x_label,
+        y=["Breit-Wigner", "MC truth"],
+        labels={"x": "Mass (GeV)", "value": "Multiplicity"},
+        title="t mass distribution",
+        barmode="overlay",
+        opacity=0.6,
+    )
+    return fig
