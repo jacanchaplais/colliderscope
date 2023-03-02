@@ -40,6 +40,14 @@ dev = [
     "pytest-cov ==2.12.1",
     "mypy ==0.910",
 ]
+app = [
+    "showerpipe",
+    "click",
+    "dash",
+]
+
+[project.scripts]
+colliderscope = "colliderscope.__main__:main"
 
 [tool.setuptools_scm]
 write_to = "colliderscope/_version.py"
