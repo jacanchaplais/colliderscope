@@ -4,5 +4,5 @@ Web UI Reference
 ================
 
 .. click:: colliderscope.__main__:main
-  :prog: main
+  :prog: colliderscope
   :nested: full
