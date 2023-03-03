@@ -14,8 +14,7 @@ from dash import dcc
 from dash import exceptions as dash_exceptions
 from plotly.graph_objs._figure import Figure
 
-from colliderscope.dag import ShowerDAG
-from colliderscope.scatter import eta_phi
+from . import eta_phi_scatter, shower_dag
 
 
 def gen_masks(
@@ -57,11 +56,10 @@ def filter_data(
     indices = np.flatnonzero(cut)
     lg.info("Updating figure.")
     lg.debug(f"{indices=}")
-    fig = eta_phi(
-        graph.pmu.data,
-        graph.pdg.data,
-        graph.final.data,
-        masks.dict,
+    fig = eta_phi_scatter(
+        graph.pmu,
+        graph.pdg,
+        masks,  # type: ignore
         eta_max=None,
         pt_min=None,
         indices=indices,
@@ -96,7 +94,7 @@ def gcl_to_json(graph: gcl.Graphicle) -> str:
     return json_str
 
 
-def maskgroup_to_json(masks: gcl.MaskGroup) -> str:
+def maskgroup_to_json(masks: gcl.MaskGroup[gcl.MaskArray]) -> str:
     json_str = pd.DataFrame(masks.dict).to_json(
         date_format="iso", orient="split"
     )
@@ -120,7 +118,7 @@ def json_to_gcl(json_str: str) -> gcl.Graphicle:
     return graph
 
 
-def json_to_maskgroup(json_str: str) -> gcl.MaskGroup:
+def json_to_maskgroup(json_str: str) -> gcl.MaskGroup[gcl.MaskArray]:
     df = pd.read_json(json_str, orient="split")
     masks = gcl.MaskGroup.from_numpy_structured(df.to_records(index=False))
     lg.info("Reading JSON string into MaskGroup object.")
@@ -147,7 +145,7 @@ def select_mass(
         custom = map(op.getitem, custom_points, it.repeat("customdata"))
         indices = map(op.getitem, custom, it.repeat(0))
         select_mask[list(indices)] = True
-    vis_mask = gcl.MaskGroup(agg_op="and")
+    vis_mask: gcl.MaskGroup[gcl.MaskArray] = gcl.MaskGroup(agg_op="and")
     vis_mask["select"] = select_mask
     vis_mask["final"] = graph.final
     root_pmu = {
@@ -179,15 +177,8 @@ def download_dag(
         raise dash_exceptions.PreventUpdate
     masks = json_to_maskgroup(masks_json)
     graph = json_to_gcl(graph_json)
-    shower = ShowerDAG(
-        graph.edges,
-        graph.pdg.data,
-        graph.pmu.pt,
-        graph.final.data,
-        masks.dict,
-    )
     with tf.TemporaryDirectory() as temp_dir:
-        shower.to_pyvis(f"{temp_dir}/dag", notebook=False)
+        shower_dag(f"{temp_dir}/dag", graph.adj, graph.pdg, masks)
         return (
             dcc.send_file(
                 f"{temp_dir}/dag.html", f"dag-e{event_num:02}-s{seed}.html"
