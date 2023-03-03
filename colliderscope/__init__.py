@@ -366,7 +366,10 @@ def shower_dag(
     list_pairs = zip(*(list_factory,) * 2, strict=True)
     node_pdgs = dict(zip(nodes, it.starmap(NodePdgs, list_pairs)))
     num_nodes = len(nodes)
-    net = Network(height, width, notebook=notebook, directed=True)
+    kwargs: ty.Dict[str, ty.Any] = dict(notebook=notebook)
+    if notebook is True:
+        kwargs["cdn_resources"] = "in_line"
+    net = Network(height, width, directed=True, **kwargs)
     net.add_nodes(
         nodes,
         label=[" "] * num_nodes,
@@ -400,6 +403,8 @@ def shower_dag(
             "<br /><br />"
             f"<b>Particles out ({len(pcls_out)}):</b><br />{out_str}"
         )
+    if notebook is True:
+        return net.show(str(output), local=True, notebook=notebook)
     return net.write_html(str(output), notebook=notebook)
 
 
@@ -616,9 +621,11 @@ def eta_phi_scatter(
 def histogram_figure(
     hist: Histogram,
     hist_label: str,
+    title: str = "",
     x_label: str = "x",
     y_label: str = "Probability density",
     overlays: ty.Optional[ty.Dict[str, base.DoubleVector]] = None,
+    opacity: float = 0.6,
 ) -> "PlotlyFigure":
     """
 
@@ -628,6 +635,8 @@ def histogram_figure(
         Histogram data to render.
     hist_label : str
         Label for the histogram in the plot legend.
+    title: str
+        Heading for the plot. Default is ``""``.
     x_label, y_label : str
         Axis labels.
     overlays : dict[str, ndarray[float64]], optional
@@ -635,18 +644,29 @@ def histogram_figure(
         displayed in the plot legend, and values are densities
         corresponding to the same x-bins of ``hist``. Default is
         ``None``.
+    opacity : float
+        Value in range [0, 1] setting how opaque bars are. If using
+        many overlays, lower values may improve visual clarity. Default
+        is ``0.6``.
+
+    Returns
+    -------
+    PlotlyFigure
+        Interactive plotly bar chart figure.
     """
     data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
     if overlays is not None:
         data_map.update(overlays)
     data = pd.DataFrame(data_map)
+    data_map.pop(x_label)
+    legend_labels = list(data_map.keys())
     fig = px.bar(
         data,
         x=x_label,
-        y=["Breit-Wigner", "MC truth"],
-        labels={"x": "Mass (GeV)", "value": "Multiplicity"},
-        title="t mass distribution",
+        y=legend_labels,
+        labels={"x": x_label, "value": y_label},
+        title=title,
         barmode="overlay",
-        opacity=0.6,
+        opacity=opacity,
     )
     return fig
