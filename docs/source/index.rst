@@ -10,6 +10,8 @@ Welcome to colliderscope's documentation!
 
 .. toctree::
    :caption: API Reference
+   :caption: CLI Reference
    :hidden:
 
    api.rst
+   cli.rst

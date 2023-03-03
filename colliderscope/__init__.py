@@ -204,9 +204,9 @@ def color_range(start: Color, stop: Color, size: int) -> ty.Tuple[Color, ...]:
     Generating a range of ``Color`` objects between red and blue.
 
         >>> import colliderscope as csp
+        ...
         >>> red = csp.Color.from_name("red")
         ... blue = csp.Color.from_name("blue")
-        ...
         >>> csp.color_range(red, blue, 3)
         (Color(value=(1.0, 0.0, 0.0)),
          Color(value=(0.0, 1.0, 0.0)),
@@ -522,7 +522,7 @@ def breit_wigner_pdf(
 
     Parameters
     ----------
-    energy : ndarray[float64]
+    energy : sequence[float]
         Energy domain over which the density is calculated.
     mass_centre : float
         Expected value of the mass peak for the particle.
