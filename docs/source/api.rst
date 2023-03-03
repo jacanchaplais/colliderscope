@@ -1,9 +1,9 @@
 .. py:module:: colliderscope
 
-Colliderscope
+colliderscope
 =============
 Colliderscope contains a small library of routines and data structures to
-produce interactive displays on particle physics data.
+produce interactive HTML displays on particle physics data.
 
 Producing figures
 -----------------

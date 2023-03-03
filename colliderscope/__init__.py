@@ -37,6 +37,10 @@ __all__ = [
     "NodePdgs",
     "color_range",
     "shower_dag",
+    "eta_phi_scatter",
+    "Histogram",
+    "breit_wigner_pdf",
+    "histogram_figure",
 ]
 
 
@@ -641,7 +645,8 @@ def histogram_figure(
     overlays: ty.Optional[ty.Dict[str, base.DoubleVector]] = None,
     opacity: float = 0.6,
 ) -> "PlotlyFigure":
-    """
+    """Automatically convert a ``Histogram`` object, and optionally a
+    number of ``overlays``, into a ``plotly`` bar chart / histogram.
 
     :group: figs
 
