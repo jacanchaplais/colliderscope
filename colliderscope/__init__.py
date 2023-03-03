@@ -524,7 +524,7 @@ def breit_wigner_pdf(
     ----------
     energy : ndarray[float64]
         Energy domain over which the density is calculated.
-    mass_center : float
+    mass_centre : float
         Expected value of the mass peak for the particle.
     width : float
         The half-maximum-height width of the distribution, or simply
