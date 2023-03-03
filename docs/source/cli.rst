@@ -3,6 +3,6 @@
 Web UI Reference
 ================
 
-.. click:: __main__:main
+.. click:: colliderscope.__main__:main
   :prog: main
   :nested: full
