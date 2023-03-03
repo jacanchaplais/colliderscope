@@ -37,10 +37,20 @@ def next_event(_):
     ),
     default="WARNING",
     show_default=True,
+    help="Minimum debugging level to include within logs.",
 )
-@click.option("-p", "--port", type=click.INT, default=8050, show_default=True)
+@click.option(
+    "-p",
+    "--port",
+    type=click.INT,
+    default=8050,
+    show_default=True,
+    help="Port number that server will open.",
+)
 def main(lhe_path: Path, log_level: str, port: int) -> None:
-    """jeti: jets made interactive."""
+    """Initiates a server to simulate and display the particle
+    collisions stored in LHE_PATH via an interactive web-app.
+    """
     import showerpipe as shp
     from dash import Dash, Input, Output, dcc, html
 
