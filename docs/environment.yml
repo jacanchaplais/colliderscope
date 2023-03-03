@@ -15,7 +15,11 @@ dependencies:
   - colour=0.1.5
   - webcolors=1.12
   - plotly=5.10.0
+  - dash=2.8.1
+  - click=8.1.2
+  - pythia8=8.307
   - pip:
     - graphicle >=0.2.4
+    - showerpipe >=0.2.7
     - sphinx_mdinclude ==0.5.3
     - sphinx-immaterial ==0.10.0

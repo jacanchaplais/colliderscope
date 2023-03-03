@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm>=6.2", "pip>=21.1"]
+requires = ["setuptools>=62", "wheel", "setuptools_scm>=6.2", "pip>=21.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,7 +10,7 @@ maintainers = [{name = "Jacan Chaplais"}]
 description = "Plotting tools for Monte-Carlo particle showers."
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
-license = {file = "LICENSE.txt", text = "BSD 3-Clause License"}
+license = {file = "LICENSE.txt"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: BSD License",
