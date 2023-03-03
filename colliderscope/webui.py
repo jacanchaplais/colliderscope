@@ -1,3 +1,10 @@
+"""
+``colliderscope.webui``
+=======================
+
+Functions providing callbacks and parsing utilities to the web user
+interface.
+"""
 import gzip as gz
 import itertools as it
 import logging as lg
@@ -120,6 +127,7 @@ def json_to_gcl(json_str: str) -> gcl.Graphicle:
 
 def json_to_maskgroup(json_str: str) -> gcl.MaskGroup[gcl.MaskArray]:
     df = pd.read_json(json_str, orient="split")
+    assert isinstance(df, pd.DataFrame), "JsonReader instead of DataFrame."
     masks = gcl.MaskGroup.from_numpy_structured(df.to_records(index=False))
     lg.info("Reading JSON string into MaskGroup object.")
     return masks
@@ -178,7 +186,7 @@ def download_dag(
     masks = json_to_maskgroup(masks_json)
     graph = json_to_gcl(graph_json)
     with tf.TemporaryDirectory() as temp_dir:
-        shower_dag(f"{temp_dir}/dag", graph.adj, graph.pdg, masks)
+        shower_dag(f"{temp_dir}/dag.html", graph.adj, graph.pdg, masks)
         return (
             dcc.send_file(
                 f"{temp_dir}/dag.html", f"dag-e{event_num:02}-s{seed}.html"

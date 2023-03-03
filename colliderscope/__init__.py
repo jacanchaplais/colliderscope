@@ -238,7 +238,7 @@ def shower_dag(
         ]
     ] = None,
     width: ty.Union[int, str] = "100%",
-    height: ty.Union[int, str] = 500,
+    height: ty.Union[int, str] = 750,
     notebook: bool = False,
     hover_width: int = 80,
 ) -> ty.Optional["IFrame"]:
@@ -266,7 +266,7 @@ def shower_dag(
         ``"100%"``.
     height : str or int
         height of the IFrame containing the visualisation. Default is
-        ``500``.
+        ``750``.
     notebook : bool
         If running in a Jupyter Notebook, passing ``True`` will render
         the visualisation as the output of the cell. Default is
@@ -404,7 +404,7 @@ def shower_dag(
             f"<b>Particles out ({len(pcls_out)}):</b><br />{out_str}"
         )
     if notebook is True:
-        return net.show(str(output), local=True, notebook=notebook)
+        return net.show(str(output))
     return net.write_html(str(output), notebook=notebook)
 
 

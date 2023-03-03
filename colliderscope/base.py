@@ -1,3 +1,9 @@
+"""
+``colliderscope.base``
+======================
+
+Package-wide base classes, interfaces, and type definitions.
+"""
 import typing as ty
 
 import numpy as np
