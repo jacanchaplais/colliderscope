@@ -1,7 +1,8 @@
 .. py:module:: colliderscope
 
-colliderscope web user-interface
-================================
+Web UI Reference
+================
 
 .. click:: __main__:main
-   :prog: colliderscope
+  :prog: main
+  :nested: full

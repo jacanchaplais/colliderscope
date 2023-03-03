@@ -9,9 +9,6 @@ Welcome to colliderscope's documentation!
 .. mdinclude:: ../../README.md
 
 .. toctree::
-   :caption: API Reference
-   :caption: CLI Reference
-   :hidden:
 
-   api.rst
-   cli.rst
+   API Reference <api>
+   Web UI Reference <cli>
