@@ -51,6 +51,8 @@ class Color:
 
     .. versionadded:: 0.2.0
 
+    :group: data
+
     Parameters
     ----------
     value : tuple[float, float, float]
@@ -179,6 +181,8 @@ def color_range(start: Color, stop: Color, size: int) -> ty.Tuple[Color, ...]:
 
     .. versionadded:: 0.2.0
 
+    :group: helpers
+
     Parameters
     ----------
     start, stop : Color
@@ -221,6 +225,8 @@ class NodePdgs(ty.NamedTuple):
     outgoing particles at a given interaction vertex. These are stored
     in ``list`` objects, and so may be mutated.
 
+    :group: data
+
     .. versionadded:: 0.2.0
     """
 
@@ -246,6 +252,8 @@ def shower_dag(
     graph (DAG).
 
     .. versionadded:: 0.2.0
+
+    :group: figs
 
     Parameters
     ----------
@@ -416,6 +424,8 @@ class Histogram:
        Migrated from ``data`` module.
        Renamed ``_align`` parameter to ``align``.
 
+    :group: data
+
     Parameters
     ----------
     num_bins : int
@@ -504,6 +514,8 @@ def breit_wigner_pdf(
     .. versionchanged:: 0.2.0
        Migrated from ``data`` module.
 
+    :group: helpers
+
     Parameters
     ----------
     energy : ndarray[float64]
@@ -540,6 +552,8 @@ def eta_phi_scatter(
 ) -> "PlotlyFigure":
     """Produces a scatter plot of particles over the eta-phi, *ie.*
     pseudorapidity-azimuth, plane.
+
+    :group: figs
 
     .. versionadded:: 0.2.0
 
@@ -628,6 +642,8 @@ def histogram_figure(
     opacity: float = 0.6,
 ) -> "PlotlyFigure":
     """
+
+    :group: figs
 
     Parameters
     ----------
