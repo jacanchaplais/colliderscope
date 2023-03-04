@@ -1,6 +1,6 @@
 .. py:module:: colliderscope
 
-colliderscope
+API Reference
 =============
 Colliderscope contains a small library of routines and data structures to
 produce interactive HTML displays on particle physics data.

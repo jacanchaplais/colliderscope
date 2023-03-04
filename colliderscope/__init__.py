@@ -554,8 +554,8 @@ def eta_phi_scatter(
     pt_min: ty.Optional[float] = 0.5,
     indices: ty.Optional[ty.Iterable[int]] = None,
 ) -> "PlotlyFigure":
-    """Produces a scatter plot of particles over the eta-phi, *ie.*
-    pseudorapidity-azimuth, plane.
+    """Produces a scatter plot of particles over the
+    :math:`\\eta-\\phi`, *ie.* pseudorapidity-azimuth, plane.
 
     :group: figs
 
@@ -564,25 +564,28 @@ def eta_phi_scatter(
     Parameters
     ----------
     pmu : iterable[tuple[float, float, float, float]]
-        Four momenta.
+        Four momenta of particles in basis :math:`(p_x, p_y, p_z, E)`.
     pdg : iterable[int]
-        PDG codes.
+        PDG particle identification codes.
     masks : mapping[str, iterable[bool]], optional
         Groups particles using key-value pairs, where the values are
         boolean masks identifying members of a group, and the keys are
-        used in the plot legend.
+        used in the plot legend. Default is ``None``.
     eta_max : float, optional
-        Maximum cut-off for the pseudorapidity.
+        Maximum cut-off for the pseudorapidity, :math:`\\eta`. Default
+        is ``2.5``.
     pt_min : float, optional
-        Minimum cut-off for the transverse momentum.
+        Minimum cut-off for the transverse momentum, :math:`p_T`.
+        Default is ``0.5``.
     indices : iterable[int], optional
         Adds custom data indices to points on scatter plot. Mostly
         useful for keeping track of particles in ``Dash`` callbacks.
+        Default is ``None``.
 
     Returns
     -------
     PlotlyFigure
-        Interactive scatter plot over the eta-phi plane.
+        Interactive scatter plot over the :math:`\\eta-\\phi` plane.
     """
     if not isinstance(pdg, cla.Sized):
         pdg = np.fromiter(pdg, dtype="<i4")
