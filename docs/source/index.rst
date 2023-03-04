@@ -9,6 +9,7 @@ Welcome to colliderscope's documentation!
 .. mdinclude:: ../../README.md
 
 .. toctree::
+   :maxdepth: 2
 
    API Reference <api>
    Web UI Reference <cli>
