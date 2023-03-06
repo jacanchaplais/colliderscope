@@ -40,7 +40,7 @@ __all__ = [
     "eta_phi_scatter",
     "Histogram",
     "breit_wigner_pdf",
-    "histogram_figure",
+    "histogram_barchart",
 ]
 
 
@@ -639,7 +639,7 @@ def eta_phi_scatter(
     return fig
 
 
-def histogram_figure(
+def histogram_barchart(
     hist: Histogram,
     hist_label: str,
     title: str = "",
@@ -676,7 +676,7 @@ def histogram_figure(
     Returns
     -------
     PlotlyFigure
-        Interactive plotly bar chart figure.
+        Interactive ``plotly`` bar chart figure.
     """
     data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
     if overlays is not None:
