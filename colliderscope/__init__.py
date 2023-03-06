@@ -484,19 +484,16 @@ class Histogram:
                 self.expected + self.window[0],
                 self.expected + self.window[1],
             )
-        self.counts = np.zeros(self.num_bins, dtype="<i")
+        self.counts = np.zeros(self.num_bins, dtype="<i4")
         self.bin_edges = np.linspace(*self.x_range, self.num_bins + 1)
         self.bin_edges = self.bin_edges.squeeze()
 
     def update(self, val: float) -> None:
         """Records a new value to the binned counts."""
-        self._total += 1
         idx = np.digitize(val, self.bin_edges) - 1
-        if idx <= -1:
-            return
-        if idx >= self.num_bins:
-            return
-        self.counts[idx] += 1
+        if -1 < idx < self.num_bins:
+            self.counts[idx] += 1
+        self._total += 1
 
     @property
     def pdf(self) -> ty.Tuple[base.DoubleVector, base.DoubleVector]:
