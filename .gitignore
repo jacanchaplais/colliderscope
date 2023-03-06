@@ -88,3 +88,4 @@ target/
 
 Session.vim
 *.hdf5
+server.log

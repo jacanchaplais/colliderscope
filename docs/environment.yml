@@ -1,0 +1,25 @@
+channels:
+  - conda-forge
+
+dependencies:
+  - pip=22.3.1
+  - python=3.10.8
+  - sphinx=5.3.0
+  - sphinx-autoapi=2.0.0
+  - sphinx-click=4.4.0
+  - pygit2=1.10.1
+  - numpy=1.23.3
+  - scipy=1.9.3
+  - more-itertools=9.1.0
+  - pyvis=0.1.9
+  - colour=0.1.5
+  - webcolors=1.12
+  - plotly=5.10.0
+  - dash=2.8.1
+  - click=8.1.2
+  - pythia8=8.307
+  - pip:
+    - graphicle >=0.2.4
+    - showerpipe >=0.2.7
+    - sphinx_mdinclude ==0.5.3
+    - sphinx-immaterial ==0.10.0
