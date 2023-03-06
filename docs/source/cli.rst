@@ -1,7 +1,7 @@
 .. py:module:: colliderscope
 
-Web UI Reference
-================
+CLI Reference
+=============
 
 .. click:: colliderscope.__main__:main
   :prog: colliderscope

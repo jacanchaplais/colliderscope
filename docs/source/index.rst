@@ -12,4 +12,4 @@ Welcome to colliderscope's documentation!
    :maxdepth: 2
 
    API Reference <api>
-   Web UI Reference <cli>
+   CLI Reference <cli>
