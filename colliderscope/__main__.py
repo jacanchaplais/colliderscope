@@ -4,10 +4,6 @@ from pathlib import Path
 
 import click
 
-DATA_DIR = Path("/scratch/jlc1n20/data/jacan/data/mg_runs/boosted/")
-SRC_DIR = Path(__file__).parent
-ROOT_DIR = SRC_DIR.parent
-
 
 def next_event(_):
     import graphicle as gcl
@@ -30,7 +26,12 @@ def next_event(_):
 @click.argument(
     "lhe-path", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
+@click.argument(
+    "pythia-config-path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
 @click.option(
+    "-l",
     "--log-level",
     type=click.Choice(
         ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"), case_sensitive=False
@@ -47,26 +48,31 @@ def next_event(_):
     show_default=True,
     help="Port number that server will open.",
 )
-def main(lhe_path: Path, log_level: str, port: int) -> None:
-    """Initiates a server to simulate and display the particle
-    collisions stored in LHE_PATH via an interactive web-app.
+def main(
+    lhe_path: Path, pythia_config_path: Path, log_level: str, port: int
+) -> None:
+    """Initiates an interactive web-app to simulate and display the
+    particle collisions stored in LHE_PATH, running Pythia 8 over the
+    events, using the settings provided in PYTHIA_CONFIG_PATH (typically
+    a file with the extension .cmnd).
     """
     import showerpipe as shp
     from dash import Dash, Input, Output, dcc, html
 
     from . import webui
 
+    CWD = Path.cwd()
+
     lg.basicConfig(
-        filename=ROOT_DIR / "server.log",
+        filename=CWD / "server.log",
         encoding="utf-8",
         level=getattr(lg, log_level.upper()),
     )
     app = Dash(__name__)
-    CONFIG_PATH = SRC_DIR / "../pythia-settings.cmnd"
     splits = shp.lhe.split(lhe_path, 1000)
     lhe_data = next(splits)
     global gen
-    gen_ = shp.generator.PythiaGenerator(CONFIG_PATH, lhe_data, None)
+    gen_ = shp.generator.PythiaGenerator(pythia_config_path, lhe_data, None)
     seed = int(gen_.config["Random"]["seed"])
     lg.info("Initialised PythiaGenerator")
     lg.debug(gen_)
@@ -118,8 +124,10 @@ def main(lhe_path: Path, log_level: str, port: int) -> None:
     )(webui.download_event)
     app.layout = html.Div(
         children=[
-            html.H1(children="jeti"),
+            html.H1(children="Colliderscope Web UI"),
+            html.H3(children="Composite masses"),
             html.Div(id="masses"),
+            html.H3(children="Azimuth / pseudorapidity scatter plot"),
             dcc.Graph(id="figure", mathjax=True),
             html.H3("Maximum pseudorapidity:"),
             dcc.Slider(id="eta-max", min=0.1, max=10.0, value=2.5),
