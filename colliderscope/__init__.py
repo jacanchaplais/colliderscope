@@ -496,13 +496,18 @@ class Histogram:
         self._total += 1
 
     @property
+    def bin_width(self) -> float:
+        """The width of all bins along the x-axis."""
+        return abs((self.window[1] - self.window[0]) / self.num_bins)
+
+    @property
     def pdf(self) -> ty.Tuple[base.DoubleVector, base.DoubleVector]:
         """Bin centers and count density. May be used for bar chart
         plots.
         """
         return (
             (self.bin_edges[1:] + self.bin_edges[:-1]) / 2.0,
-            self.counts / self._total,
+            self.counts / (self._total * self.bin_width),
         )
 
 
@@ -532,8 +537,7 @@ def breit_wigner_pdf(
     ndarray[float64]
         Densities corresponding to passed sequence of ``energy`` values.
     """
-    bw = cauchy.pdf(x=energy, loc=mass_centre, scale=(width / 2.0))
-    return bw / bw.sum()
+    return cauchy.pdf(x=energy, loc=mass_centre, scale=(width / 2.0))
 
 
 def _pt_size(pt: base.DoubleVector) -> float:
