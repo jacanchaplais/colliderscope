@@ -509,8 +509,8 @@ class Histogram:
 def breit_wigner_pdf(
     energy: ty.Sequence[float], mass_centre: float, width: float
 ) -> base.DoubleVector:
-    """Produces the *Breit-Wigner* probability density function for a
-    particle of given ``width`` and ``mass_centre``.
+    """Produces the non-relativistic *Breit-Wigner* probability density
+    function for a particle of given ``width`` and ``mass_centre``.
 
     .. versionchanged:: 0.2.0
        Migrated from ``data`` module.
