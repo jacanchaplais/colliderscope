@@ -491,6 +491,29 @@ class Histogram:
         self.bin_edges = np.linspace(*self.x_range, self.num_bins + 1)
         self.bin_edges = self.bin_edges.squeeze()
 
+    def __eq__(self, other: "Histogram") -> bool:
+        """Determines if two ``Histogram`` instances contain the same
+        ``bin_edges``, ``counts``, and normalisation for ``pdf``.
+        """
+        eq = np.array_equal(self.bin_edges, other.bin_edges)
+        eq = eq and np.array_equal(self.counts, other.counts)
+        eq = eq and (self._total == other._total)
+        return bool(eq)
+
+    def __add__(self, other: "Histogram") -> "Histogram":
+        """Merges two ``Histogram`` instances, by adding their
+        ``counts`` and ``_total`` normalisation variables. Must have the
+        same bins.
+        """
+        if not np.array_equal(self.bin_edges, other.bin_edges):
+            raise ValueError("Histograms must have the same bins.")
+        hist = self.__class__(
+            self.num_bins, self.window, self.align, self.expected
+        )
+        hist.counts[...] = self.counts + other.counts
+        hist._total = self._total + other._total
+        return hist
+
     def update(self, val: float) -> None:
         """Records a new value to the binned counts."""
         idx = np.digitize(val, self.bin_edges) - 1
