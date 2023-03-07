@@ -752,7 +752,9 @@ def histogram_barchart(
     """
     data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
     if overlays is not None:
-        data_map.update(overlays)
+        overlays = cl.OrderedDict(overlays)
+        overlays.update(data_map)
+        data_map = overlays
     data = pd.DataFrame(data_map)
     data_map.pop(x_label)
     legend_labels = list(data_map.keys())
