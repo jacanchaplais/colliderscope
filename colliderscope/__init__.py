@@ -4,9 +4,12 @@
 
 Visualise your high energy physics (HEP) data with colliderscope!
 """
+import collections as cl
 import collections.abc as cla
 import dataclasses as dc
+import gzip as gz
 import itertools as it
+import json
 import operator as op
 import textwrap as tw
 import typing as ty
@@ -494,6 +497,74 @@ class Histogram:
         if -1 < idx < self.num_bins:
             self.counts[idx] += 1
         self._total += 1
+
+    def to_json(
+        self,
+        fname: ty.Union[str, Path],
+        encoding: str = "utf-8",
+    ) -> None:
+        """Serialise and store ``Histogram`` object as a JSON file.
+
+        Parameters
+        ----------
+        fname : str or Path
+            Location on disk to save the data. If ``gzip`` compression
+            is desired, use the ``".gz"`` extension.
+        encoding : str
+            Standard used to encode the text into binary formats.
+            Default is ``"utf-8"``.
+        """
+        fname = Path(fname)
+        if fname.suffix == ".gz":
+            f = gz.open(fname, mode="wt", encoding=encoding)
+        else:
+            f = open(fname, mode="w", encoding=encoding)
+        data = dc.asdict(self)
+        for key, val in data.items():
+            if isinstance(val, np.ndarray):
+                data[key] = list(map(op.methodcaller("item"), val))
+        with f:
+            json.dump(data, f)
+
+    @classmethod
+    def from_json(
+        cls,
+        fname: ty.Union[str, Path],
+        encoding: str = "utf-8",
+    ) -> "Histogram":
+        """Instantiate a histogram from JSON file, encoded using the
+        ``Histogram.to_json()`` method.
+
+        Parameters
+        ----------
+        fname : str or Path
+            Location on disk from which to load the data.
+        encoding : str
+            Standard used to encode the text into binary formats.
+            Default is ``"utf-8"``.
+
+        Returns
+        -------
+        Histogram
+            Instance loaded from JSON stored data.
+        """
+        fname = Path(fname)
+        if fname.suffix == ".gz":
+            f = gz.open(fname, mode="rt", encoding=encoding)
+        else:
+            f = open(fname, encoding=encoding)
+        with f:
+            data = json.load(f)
+        hist = cls(
+            data.pop("num_bins"),
+            tuple(data.pop("window")),
+            data.pop("align"),
+            data.pop("expected"),
+        )
+        hist._total = data.pop("_total")
+        for key, val in data.items():  # remaining numpy arrays
+            getattr(hist, key)[...] = val
+        return hist
 
     @property
     def bin_width(self) -> float:
