@@ -664,18 +664,18 @@ def eta_phi_scatter(
     NUM_PCLS = len(pdg)
     if not isinstance(pmu, cla.Sized):
         pmu = np.fromiter(pmu, dtype=("<f8", 4), count=NUM_PCLS)
-    pmu = gcl.MomentumArray(pmu)  # type: ignore
-    pdg = gcl.PdgArray(pdg)  # type: ignore
+    pmu_ = gcl.MomentumArray(pmu)  # type: ignore
+    pdg_ = gcl.PdgArray(pdg)  # type: ignore
     vis_mask = gcl.MaskGroup(agg_op="and")  # type: ignore
     if eta_max is not None:
-        vis_mask["eta"] = np.abs(pmu.eta) < eta_max
+        vis_mask["eta"] = np.abs(pmu_.eta) < eta_max
     if pt_min is not None:
-        vis_mask["pt"] = pmu.pt > pt_min
+        vis_mask["pt"] = pmu_.pt > pt_min
     if len(vis_mask) == 0:
         vis_mask["none"] = np.ones(NUM_PCLS, dtype="<?")
     NUM_VISIBLE = np.sum(vis_mask.data, dtype="<i4")
-    vis_pmu = pmu[vis_mask]
-    vis_pdg = pdg[vis_mask]
+    vis_pmu = pmu_[vis_mask]
+    vis_pdg = pdg_[vis_mask]
     df = pd.DataFrame(
         {
             "pt": vis_pmu.pt,
@@ -752,7 +752,9 @@ def histogram_barchart(
     """
     data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
     if overlays is not None:
-        data_map.update(overlays)
+        overlays = cl.OrderedDict(overlays)
+        overlays.update(data_map)
+        data_map = overlays
     data = pd.DataFrame(data_map)
     data_map.pop(x_label)
     legend_labels = list(data_map.keys())
