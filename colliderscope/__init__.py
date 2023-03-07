@@ -7,6 +7,7 @@ Visualise your high energy physics (HEP) data with colliderscope!
 import collections as cl
 import collections.abc as cla
 import dataclasses as dc
+import gzip as gz
 import itertools as it
 import json
 import operator as op
@@ -502,7 +503,7 @@ class Histogram:
         fname: ty.Union[str, Path],
         encoding: str = "utf-8",
     ) -> None:
-        """Write binned counts out to a JSON file.
+        """Serialise and store ``Histogram`` object as a JSON file.
 
         Parameters
         ----------
