@@ -564,7 +564,7 @@ class Histogram:
         data = dc.asdict(self)
         for key, val in data.items():
             if isinstance(val, np.ndarray):
-                data[key] = list(map(op.methodcaller("item"), val))
+                data[key] = val.tolist()
         with f:
             json.dump(data, f)
 
