@@ -298,6 +298,12 @@ def shower_dag(
         If ``notebook`` parameter is passed ``True``, this function
         returns an IFrame containing the HTML visualisation.
 
+    Raises
+    ------
+    ValueError
+        If ``masks`` is passed nested mapping, *ie.* a dict-of-dicts,
+        or a non-flat ``graphicle.MaskGroup`` instance.
+
     Notes
     -----
     Particles are represented by edges on this plot. Therefore,
@@ -376,28 +382,36 @@ def shower_dag(
         )
         packed_masks = masks
         if isinstance(masks, cla.Mapping):
+            if any(map(lambda v: isinstance(v, cla.Mapping), masks.values())):
+                raise ValueError(
+                    "Masks must be flat, ie. have no hierarchical nesting. "
+                    "If you are using graphicle MaskGroups, try calling the "
+                    "MaskGroup.flatten() method."
+                )
             packed_masks = masks.values()
         masks_iter = zip(*packed_masks)
     nodes = list(mit.unique_everseen(it.chain.from_iterable(edge_tup)))
     list_factory = map(op.methodcaller("__call__"), it.repeat(list))
     list_pairs = zip(*(list_factory,) * 2, strict=True)
     node_pdgs = dict(zip(nodes, it.starmap(NodePdgs, list_pairs)))
-    num_nodes = len(nodes)
-    kwargs: ty.Dict[str, ty.Any] = dict(notebook=notebook)
-    if notebook is True:
-        kwargs["cdn_resources"] = "in_line"
-    net = Network(height, width, directed=True, **kwargs)
+    NUM_NODES = len(nodes)
+    net = Network(height, width, directed=True, notebook=notebook)
     net.add_nodes(
         nodes,
-        label=[" "] * num_nodes,
-        size=[10] * num_nodes,
-        color=["black"] * num_nodes,
+        label=[" "] * NUM_NODES,
+        size=[10] * NUM_NODES,
+        color=["black"] * NUM_NODES,
     )
-    for edge, leaf, name, mask in zip(edge_tup, leaves, pdgs.name, masks_iter):
+    particle_iter = zip(edge_tup, roots, leaves, pdgs.name, masks_iter)
+    for edge, root, leaf, name, mask in particle_iter:
         node_pdgs[edge.src].outgoing.append(name)
         node_pdgs[edge.dst].incoming.append(name)
         out_vtx = net.node_map[edge.dst]
         in_vtx = net.node_map[edge.src]
+        if root:
+            in_vtx["label"] = "start"
+            in_vtx["shape"] = "square"
+            in_vtx["size"] = 20
         if leaf:
             out_vtx["label"] = name
             out_vtx["shape"] = "star"
