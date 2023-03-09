@@ -61,7 +61,6 @@ extensions = [
     "sphinx_immaterial.apidoc.python.apigen",
     "sphinx.ext.linkcode",
     "sphinx_click",
-    "sphinx_math_dollar",
 ]
 
 autoapi_dirs = [proj_dir]
