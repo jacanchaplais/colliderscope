@@ -369,10 +369,13 @@ def shower_dag(
         pdgs = gcl.PdgArray(pdgs)  # type: ignore
     if isinstance(edges, gcl.AdjacencyList):
         leaves = edges.leaves
+        roots = edges.roots
         edge_tup = tuple(iter(edges))
     else:
         edge_tup = tuple(it.starmap(gcl.VertexPair, edges))
-        leaves = gcl.AdjacencyList(edge_tup).leaves  # type: ignore
+        _adj = gcl.AdjacencyList(edge_tup)  # type: ignore
+        leaves = _adj.leaves
+        roots = _adj.roots
     if masks is None:
         masks_iter = it.repeat((False,), len(edge_tup))
         pallette = (Color(),)
