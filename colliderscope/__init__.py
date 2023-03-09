@@ -179,7 +179,7 @@ class Color:
         add_rgb = map(op.add, self, other)
         add_rgb = map(_clip, add_rgb)
         add_color = colour.Color(rgb=tuple(add_rgb))
-        add_color.set_luminance(lum_average)
+        add_color.set_luminance(_clip(lum_average, 0.4, 0.6))
         new_rgb = map(_clip, add_color.rgb)
         return self.__class__(tuple(new_rgb))
 
