@@ -13,6 +13,7 @@ import json
 import operator as op
 import textwrap as tw
 import typing as ty
+import warnings
 from pathlib import Path
 
 import colour
@@ -43,6 +44,7 @@ __all__ = [
     "eta_phi_scatter",
     "Histogram",
     "breit_wigner_pdf",
+    "hist_to_bw_params",
     "histogram_barchart",
 ]
 
@@ -631,7 +633,43 @@ def breit_wigner_pdf(
     ndarray[float64]
         Densities corresponding to passed sequence of ``energy`` values.
     """
-    return cauchy.pdf(x=energy, loc=mass_centre, scale=(width / 2.0))
+    half_width = width / 2.0
+    if (energy[1] - energy[0]) > half_width:
+        warnings.warn(
+            "Width of distribution is smaller than the energy bin width. "
+            "This will result in unexpected behaviour. It is recommended "
+            "to increase the resolution of the passed energy values."
+        )
+    return cauchy.pdf(x=energy, loc=mass_centre, scale=half_width)
+
+
+def hist_to_bw_params(hist: Histogram) -> ty.Tuple[float, float]:
+    """Parameters which fit a *Breit-Wigner* distribution to the passed
+    ``Histogram``.
+
+    :group: helpers
+
+    .. versionadded:: 0.2.2
+
+    Parameters
+    ----------
+    hist : Histogram
+        Mass histogram for a reconstructed particle.
+
+    Returns
+    -------
+    tuple[float, float]
+        Mass centre and width of the Breit-Wigner peak, respectively.
+    """
+    e_iter_nested = it.starmap(
+        lambda e, count: [e] * count.item(), zip(hist.pdf[0], hist.counts)
+    )
+    e_iter = it.chain.from_iterable(e_iter_nested)
+    fit_kwargs = dict()
+    if hist.expected is not None:
+        fit_kwargs["loc"] = hist.expected
+    mass_centre, half_width = cauchy.fit(list(e_iter), **fit_kwargs)
+    return mass_centre, half_width * 2.0
 
 
 def _pt_size(pt: base.DoubleVector) -> float:
