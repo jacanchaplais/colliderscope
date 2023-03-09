@@ -21,5 +21,4 @@ dependencies:
   - pip:
     - graphicle >=0.2.4
     - showerpipe >=0.2.7
-    - sphinx_mdinclude ==0.5.3
     - sphinx-immaterial ==0.10.0

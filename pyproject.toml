@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [{name = "Jacan Chaplais"}]
 maintainers = [{name = "Jacan Chaplais"}]
 description = "Plotting tools for Monte-Carlo particle showers."
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
 classifiers = [
@@ -23,7 +23,7 @@ dependencies = [
     "pyvis <=0.1.9",
     "colour",
     "webcolors",
-    "graphicle >=0.2.4",
+    "graphicle >=0.2.6",
     "plotly",
     "more-itertools >=2.1",
 ]

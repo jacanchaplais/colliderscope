@@ -13,6 +13,7 @@ import json
 import operator as op
 import textwrap as tw
 import typing as ty
+import warnings
 from pathlib import Path
 
 import colour
@@ -43,6 +44,7 @@ __all__ = [
     "eta_phi_scatter",
     "Histogram",
     "breit_wigner_pdf",
+    "hist_to_bw_params",
     "histogram_barchart",
 ]
 
@@ -177,7 +179,7 @@ class Color:
         add_rgb = map(op.add, self, other)
         add_rgb = map(_clip, add_rgb)
         add_color = colour.Color(rgb=tuple(add_rgb))
-        add_color.set_luminance(lum_average)
+        add_color.set_luminance(_clip(lum_average, 0.4, 0.6))
         new_rgb = map(_clip, add_color.rgb)
         return self.__class__(tuple(new_rgb))
 
@@ -296,6 +298,12 @@ def shower_dag(
         If ``notebook`` parameter is passed ``True``, this function
         returns an IFrame containing the HTML visualisation.
 
+    Raises
+    ------
+    ValueError
+        If ``masks`` is passed nested mapping, *ie.* a dict-of-dicts,
+        or a non-flat ``graphicle.MaskGroup`` instance.
+
     Notes
     -----
     Particles are represented by edges on this plot. Therefore,
@@ -361,10 +369,13 @@ def shower_dag(
         pdgs = gcl.PdgArray(pdgs)  # type: ignore
     if isinstance(edges, gcl.AdjacencyList):
         leaves = edges.leaves
+        roots = edges.roots
         edge_tup = tuple(iter(edges))
     else:
         edge_tup = tuple(it.starmap(gcl.VertexPair, edges))
-        leaves = gcl.AdjacencyList(edge_tup).leaves  # type: ignore
+        _adj = gcl.AdjacencyList(edge_tup)  # type: ignore
+        leaves = _adj.leaves
+        roots = _adj.roots
     if masks is None:
         masks_iter = it.repeat((False,), len(edge_tup))
         pallette = (Color(),)
@@ -374,28 +385,36 @@ def shower_dag(
         )
         packed_masks = masks
         if isinstance(masks, cla.Mapping):
+            if any(map(lambda v: isinstance(v, cla.Mapping), masks.values())):
+                raise ValueError(
+                    "Masks must be flat, ie. have no hierarchical nesting. "
+                    "If you are using graphicle MaskGroups, try calling the "
+                    "MaskGroup.flatten() method."
+                )
             packed_masks = masks.values()
         masks_iter = zip(*packed_masks)
     nodes = list(mit.unique_everseen(it.chain.from_iterable(edge_tup)))
     list_factory = map(op.methodcaller("__call__"), it.repeat(list))
     list_pairs = zip(*(list_factory,) * 2, strict=True)
     node_pdgs = dict(zip(nodes, it.starmap(NodePdgs, list_pairs)))
-    num_nodes = len(nodes)
-    kwargs: ty.Dict[str, ty.Any] = dict(notebook=notebook)
-    if notebook is True:
-        kwargs["cdn_resources"] = "in_line"
-    net = Network(height, width, directed=True, **kwargs)
+    NUM_NODES = len(nodes)
+    net = Network(height, width, directed=True, notebook=notebook)
     net.add_nodes(
         nodes,
-        label=[" "] * num_nodes,
-        size=[10] * num_nodes,
-        color=["black"] * num_nodes,
+        label=[" "] * NUM_NODES,
+        size=[10] * NUM_NODES,
+        color=["black"] * NUM_NODES,
     )
-    for edge, leaf, name, mask in zip(edge_tup, leaves, pdgs.name, masks_iter):
+    particle_iter = zip(edge_tup, roots, leaves, pdgs.name, masks_iter)
+    for edge, root, leaf, name, mask in particle_iter:
         node_pdgs[edge.src].outgoing.append(name)
         node_pdgs[edge.dst].incoming.append(name)
         out_vtx = net.node_map[edge.dst]
         in_vtx = net.node_map[edge.src]
+        if root:
+            in_vtx["label"] = "start"
+            in_vtx["shape"] = "square"
+            in_vtx["size"] = 20
         if leaf:
             out_vtx["label"] = name
             out_vtx["shape"] = "star"
@@ -545,7 +564,7 @@ class Histogram:
         data = dc.asdict(self)
         for key, val in data.items():
             if isinstance(val, np.ndarray):
-                data[key] = list(map(op.methodcaller("item"), val))
+                data[key] = val.tolist()
         with f:
             json.dump(data, f)
 
@@ -630,8 +649,50 @@ def breit_wigner_pdf(
     -------
     ndarray[float64]
         Densities corresponding to passed sequence of ``energy`` values.
+
+    Warns
+    -----
+    UserWarning
+        If the resolution of the passed ``energy`` data is lower than
+        the width of the distribution.
     """
-    return cauchy.pdf(x=energy, loc=mass_centre, scale=(width / 2.0))
+    half_width = width / 2.0
+    if (energy[1] - energy[0]) > half_width:
+        warnings.warn(
+            "Width of distribution is smaller than the energy bin width. "
+            "This will result in unexpected behaviour. It is recommended "
+            "to increase the resolution of the passed energy values."
+        )
+    return cauchy.pdf(x=energy, loc=mass_centre, scale=half_width)
+
+
+def hist_to_bw_params(hist: Histogram) -> ty.Tuple[float, float]:
+    """Parameters which fit a *Breit-Wigner* distribution to the passed
+    ``Histogram``.
+
+    :group: helpers
+
+    .. versionadded:: 0.2.2
+
+    Parameters
+    ----------
+    hist : Histogram
+        Mass histogram for a reconstructed particle.
+
+    Returns
+    -------
+    tuple[float, float]
+        Mass centre and width of the Breit-Wigner peak, respectively.
+    """
+    e_iter_nested = it.starmap(
+        lambda e, count: [e] * count.item(), zip(hist.pdf[0], hist.counts)
+    )
+    e_iter = it.chain.from_iterable(e_iter_nested)
+    fit_kwargs = dict()
+    if hist.expected is not None:
+        fit_kwargs["loc"] = hist.expected
+    mass_centre, half_width = cauchy.fit(list(e_iter), **fit_kwargs)
+    return mass_centre, half_width * 2.0
 
 
 def _pt_size(pt: base.DoubleVector) -> float:
