@@ -646,6 +646,12 @@ def breit_wigner_pdf(
     -------
     ndarray[float64]
         Densities corresponding to passed sequence of ``energy`` values.
+
+    Warns
+    -----
+    UserWarning
+        If the resolution of the passed ``energy`` data is lower than
+        the width of the distribution.
     """
     half_width = width / 2.0
     if (energy[1] - energy[0]) > half_width:
