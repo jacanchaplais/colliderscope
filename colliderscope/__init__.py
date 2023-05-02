@@ -702,6 +702,34 @@ def _pt_size(pt: base.DoubleVector) -> float:
     return size
 
 
+def _iterable_to_momentum(
+    pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
+    count: ty.Optional[int] = None,
+) -> gcl.MomentumArray:
+    if isinstance(pmu, gcl.MomentumArray):
+        return pmu
+    kwargs = dict()
+    if count is not None:
+        kwargs["count"] = count
+    if not isinstance(pmu, cla.Sized):
+        pmu = np.fromiter(pmu, dtype=("<f8", 4), **kwargs)
+    return gcl.MomentumArray(pmu)  # type: ignore
+
+
+def _iterable_to_pdg(
+    pdg: ty.Iterable[int],
+    count: ty.Optional[int] = None,
+) -> gcl.PdgArray:
+    if isinstance(pdg, gcl.PdgArray):
+        return pdg
+    kwargs = dict()
+    if count is not None:
+        kwargs["count"] = count
+    if not isinstance(pdg, cla.Sized):
+        pdg = np.fromiter(pdg, dtype="<i4", **kwargs)
+    return gcl.PdgArray(pdg)  # type: ignore
+
+
 def eta_phi_scatter(
     pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
     pdg: ty.Iterable[int],
@@ -743,13 +771,9 @@ def eta_phi_scatter(
     PlotlyFigure
         Interactive scatter plot over the :math:`\\eta-\\phi` plane.
     """
-    if not isinstance(pdg, cla.Sized):
-        pdg = np.fromiter(pdg, dtype="<i4")
-    NUM_PCLS = len(pdg)
-    if not isinstance(pmu, cla.Sized):
-        pmu = np.fromiter(pmu, dtype=("<f8", 4), count=NUM_PCLS)
-    pmu_ = gcl.MomentumArray(pmu)  # type: ignore
-    pdg_ = gcl.PdgArray(pdg)  # type: ignore
+    pdg_ = _iterable_to_pdg(pdg)
+    NUM_PCLS = len(pdg_)
+    pmu_ = _iterable_to_momentum(pmu, count=NUM_PCLS)
     vis_mask = gcl.MaskGroup(agg_op="and")  # type: ignore
     if eta_max is not None:
         vis_mask["eta"] = np.abs(pmu_.eta) < eta_max
