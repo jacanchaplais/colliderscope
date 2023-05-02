@@ -8,6 +8,7 @@ import collections as cl
 import collections.abc as cla
 import dataclasses as dc
 import gzip as gz
+import io
 import itertools as it
 import json
 import operator as op
