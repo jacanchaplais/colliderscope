@@ -822,7 +822,7 @@ def eta_phi_scatter(
 
 def _edge_pos(
     pcl_pos: base.DoubleVector, adj: base.BoolVector
-) -> ty.List[ty.List[ty.Optional[float]]]:
+) -> ty.List[ty.Optional[float]]:
     edges = []
     for ux, row in zip(pcl_pos, adj):
         for vx in pcl_pos[row]:
@@ -833,8 +833,67 @@ def _edge_pos(
 def eta_phi_network(
     pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
     radius: float,
+    title: ty.Optional[str] = None,
+    color: ty.Optional[ty.Iterable[float]] = None,
+    colorbar_title: ty.Optional[str] = None,
+    marker_symbols: ty.Optional[ty.Iterable[ty.Union[str, int]]] = None,
 ) -> "PlotlyFigure":
+    """Produces a Plotly figure which calculates interparticle distance,
+    and connects particles in a network visualisation when they are
+    within ``radius`` of each other.
+
+    :group: figs
+
+    .. versionadded:: 0.2.3
+
+    Parameters
+    ----------
+    pmu : iterable[tuple[float, float, float, float]]
+        Representing the four-momenta of the particles, in the order
+        :math:`x, y, z, e`. Numpy arrays with four columns, or
+        graphicle ``MomentumArrays`` may be passed.
+    radius : float
+        Interparticle angular distance on the :math:`\\eta-\\phi` plane
+        below which nodes in the network will be considered adjacent.
+    title : str, optional
+        Main heading for the figure. Default is ``None``.
+    color : iterable[float], optional
+        If passed, will add a colorbar to the figure, and the values
+        provided here will be used to define the color of each node.
+        Default is ``None``.
+    colorbar_title : str, optional
+        String label used to annotate the colorbar. Default is ``None``.
+    marker_symbols : iterable[int | str], optional
+        Symbols defining the shape of markers. Must be of same length
+        as ``momenta``. For symbol names / codes, see:
+        https://plotly.com/python/marker-style/#custom-marker-symbols
+        Default is ``None``.
+
+    Returns
+    -------
+    PlotlyFigure
+        Plotly figure of particles on the :math:`\\eta-\\phi` plane,
+        with edges connecting adjacent particles, defined by ``radius``.
+    """
     pmu = _iterable_to_momentum(pmu)
+    num_points = len(pmu)
+    layout_opts = dict()
+    if title is not None:
+        layout_opts["title"] = title
+    marker_opts: ty.Dict[str, ty.Any] = dict(size=10, line_width=1)
+    if color is not None:
+        if not isinstance(color, cla.Sized):
+            color = np.fromiter(color, dtype="<f8", count=num_points)
+        marker_opts["color"] = color
+        marker_opts["colorbar"] = dict(
+            thickness=15,
+            xanchor="left",
+            titleside="right",
+        )
+        if colorbar_title is not None:
+            marker_opts["colorbar"]["title"] = colorbar_title
+        if marker_symbols is not None:
+            marker_opts["symbol"] = marker_symbols
     adj_matrix = pmu.delta_R(pmu) < radius
     eta_edge = _edge_pos(pmu.eta, adj_matrix)
     phi_edge = _edge_pos(pmu.phi, adj_matrix)
@@ -851,12 +910,11 @@ def eta_phi_network(
         y=list(pmu.phi),
         mode="markers",
         showlegend=False,
-        marker=dict(size=10, line_width=1),
+        marker=marker_opts,
     )
     fig = go.Figure(
         data=[edge_trace, node_trace],
         layout=go.Layout(
-            title="Input graph data structure",
             titlefont_size=16,
             hovermode="closest",
             margin=dict(b=20, l=5, r=5, t=40),
@@ -872,6 +930,7 @@ def eta_phi_network(
                 showticklabels=True,
                 title_text="Azimuth",
             ),
+            **layout_opts,
         ),
     )
     return fig
