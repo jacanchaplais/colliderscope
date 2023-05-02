@@ -542,25 +542,29 @@ class Histogram:
 
     def to_json(
         self,
-        fname: ty.Union[str, Path],
+        fname: ty.Union[str, Path, io.TextIOBase],
         encoding: str = "utf-8",
     ) -> None:
         """Serialise and store ``Histogram`` object as a JSON file.
 
         Parameters
         ----------
-        fname : str or Path
-            Location on disk to save the data. If ``gzip`` compression
-            is desired, use the ``".gz"`` extension.
+        fname : str or Path or file-like
+            Location on disk, or file-object, to save the data. If
+            ``gzip`` compression is desired, use the ``".gz"``
+            extension.
         encoding : str
             Standard used to encode the text into binary formats.
             Default is ``"utf-8"``.
         """
-        fname = Path(fname)
-        if fname.suffix == ".gz":
-            f = gz.open(fname, mode="wt", encoding=encoding)
+        if isinstance(fname, io.TextIOBase):
+            f = fname
         else:
-            f = open(fname, mode="w", encoding=encoding)
+            fname = Path(fname)
+            if fname.suffix == ".gz":
+                f = gz.open(fname, mode="wt", encoding=encoding)
+            else:
+                f = open(fname, mode="w", encoding=encoding)
         data = dc.asdict(self)
         for key, val in data.items():
             if isinstance(val, np.ndarray):
@@ -571,7 +575,7 @@ class Histogram:
     @classmethod
     def from_json(
         cls,
-        fname: ty.Union[str, Path],
+        fname: ty.Union[str, Path, io.IOBase],
         encoding: str = "utf-8",
     ) -> "Histogram":
         """Instantiate a histogram from JSON file, encoded using the
