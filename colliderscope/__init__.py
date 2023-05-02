@@ -22,6 +22,7 @@ import more_itertools as mit
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objs as go
 import webcolors
 from pyvis.network import Network
 from scipy.stats import cauchy
@@ -816,6 +817,63 @@ def eta_phi_scatter(
     )
     fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
     fig.update_xaxes(title_text=r"$\eta$")
+    return fig
+
+
+def _edge_pos(
+    pcl_pos: base.DoubleVector, adj: base.BoolVector
+) -> ty.List[ty.List[ty.Optional[float]]]:
+    edges = []
+    for ux, row in zip(pcl_pos, adj):
+        for vx in pcl_pos[row]:
+            edges += [ux, vx, None]
+    return edges
+
+
+def eta_phi_network(
+    pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
+    radius: float,
+) -> "PlotlyFigure":
+    pmu = _iterable_to_momentum(pmu)
+    adj_matrix = pmu.delta_R(pmu) < radius
+    eta_edge = _edge_pos(pmu.eta, adj_matrix)
+    phi_edge = _edge_pos(pmu.phi, adj_matrix)
+    edge_trace = go.Scatter(
+        x=eta_edge,
+        y=phi_edge,
+        line=dict(width=0.5, color="#686a72"),
+        hoverinfo="none",
+        mode="lines",
+        showlegend=False,
+    )
+    node_trace = go.Scatter(
+        x=list(pmu.eta),
+        y=list(pmu.phi),
+        mode="markers",
+        showlegend=False,
+        marker=dict(size=10, line_width=1),
+    )
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            title="Input graph data structure",
+            titlefont_size=16,
+            hovermode="closest",
+            margin=dict(b=20, l=5, r=5, t=40),
+            xaxis=dict(
+                showgrid=True,
+                zeroline=False,
+                showticklabels=True,
+                title_text="Pseudorapidity",
+            ),
+            yaxis=dict(
+                showgrid=True,
+                zeroline=False,
+                showticklabels=True,
+                title_text="Azimuth",
+            ),
+        ),
+    )
     return fig
 
 
