@@ -867,7 +867,7 @@ def eta_phi_network(
     marker_symbols : iterable[int | str], optional
         Symbols defining the shape of markers. Must be of same length
         as ``momenta``. For symbol names / codes, see:
-        https://plotly.com/python/marker-style/#custom-marker-symbols
+        https://plotly.com/python/marker-style/#custom-marker-symbols.
         Default is ``None``.
 
     Returns
