@@ -43,6 +43,7 @@ __all__ = [
     "color_range",
     "shower_dag",
     "eta_phi_scatter",
+    "eta_phi_network",
     "Histogram",
     "breit_wigner_pdf",
     "hist_to_bw_params",
