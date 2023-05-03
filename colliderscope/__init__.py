@@ -23,6 +23,7 @@ import more_itertools as mit
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objs as go
 import webcolors
 from pyvis.network import Network
 from scipy.stats import cauchy
@@ -43,6 +44,7 @@ __all__ = [
     "color_range",
     "shower_dag",
     "eta_phi_scatter",
+    "eta_phi_network",
     "Histogram",
     "breit_wigner_pdf",
     "hist_to_bw_params",
@@ -707,6 +709,34 @@ def _pt_size(pt: base.DoubleVector) -> float:
     return size
 
 
+def _iterable_to_momentum(
+    pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
+    count: ty.Optional[int] = None,
+) -> gcl.MomentumArray:
+    if isinstance(pmu, gcl.MomentumArray):
+        return pmu
+    kwargs = dict()
+    if count is not None:
+        kwargs["count"] = count
+    if not isinstance(pmu, cla.Sized):
+        pmu = np.fromiter(pmu, dtype=("<f8", 4), **kwargs)
+    return gcl.MomentumArray(pmu)  # type: ignore
+
+
+def _iterable_to_pdg(
+    pdg: ty.Iterable[int],
+    count: ty.Optional[int] = None,
+) -> gcl.PdgArray:
+    if isinstance(pdg, gcl.PdgArray):
+        return pdg
+    kwargs = dict()
+    if count is not None:
+        kwargs["count"] = count
+    if not isinstance(pdg, cla.Sized):
+        pdg = np.fromiter(pdg, dtype="<i4", **kwargs)
+    return gcl.PdgArray(pdg)  # type: ignore
+
+
 def eta_phi_scatter(
     pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
     pdg: ty.Iterable[int],
@@ -748,13 +778,9 @@ def eta_phi_scatter(
     PlotlyFigure
         Interactive scatter plot over the :math:`\\eta-\\phi` plane.
     """
-    if not isinstance(pdg, cla.Sized):
-        pdg = np.fromiter(pdg, dtype="<i4")
-    NUM_PCLS = len(pdg)
-    if not isinstance(pmu, cla.Sized):
-        pmu = np.fromiter(pmu, dtype=("<f8", 4), count=NUM_PCLS)
-    pmu_ = gcl.MomentumArray(pmu)  # type: ignore
-    pdg_ = gcl.PdgArray(pdg)  # type: ignore
+    pdg_ = _iterable_to_pdg(pdg)
+    NUM_PCLS = len(pdg_)
+    pmu_ = _iterable_to_momentum(pmu, count=NUM_PCLS)
     vis_mask = gcl.MaskGroup(agg_op="and")  # type: ignore
     if eta_max is not None:
         vis_mask["eta"] = np.abs(pmu_.eta) < eta_max
@@ -797,6 +823,122 @@ def eta_phi_scatter(
     )
     fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
     fig.update_xaxes(title_text=r"$\eta$")
+    return fig
+
+
+def _edge_pos(
+    pcl_pos: base.DoubleVector, adj: base.BoolVector
+) -> ty.List[ty.Optional[float]]:
+    edges = []
+    for ux, row in zip(pcl_pos, adj):
+        for vx in pcl_pos[row]:
+            edges += [ux, vx, None]
+    return edges
+
+
+def eta_phi_network(
+    pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
+    radius: float,
+    title: ty.Optional[str] = None,
+    color: ty.Optional[ty.Iterable[float]] = None,
+    colorbar_title: ty.Optional[str] = None,
+    marker_symbols: ty.Optional[ty.Iterable[ty.Union[str, int]]] = None,
+) -> "PlotlyFigure":
+    """Produces a Plotly figure which calculates interparticle distance,
+    and connects particles in a network visualisation when they are
+    within ``radius`` of each other.
+
+    :group: figs
+
+    .. versionadded:: 0.2.3
+
+    Parameters
+    ----------
+    pmu : iterable[tuple[float, float, float, float]]
+        Representing the four-momenta of the particles, in the order
+        :math:`x, y, z, e`. Numpy arrays with four columns, or
+        graphicle ``MomentumArrays`` may be passed.
+    radius : float
+        Interparticle angular distance on the :math:`\\eta-\\phi` plane
+        below which nodes in the network will be considered adjacent.
+    title : str, optional
+        Main heading for the figure. Default is ``None``.
+    color : iterable[float], optional
+        If passed, will add a colorbar to the figure, and the values
+        provided here will be used to define the color of each node.
+        Default is ``None``.
+    colorbar_title : str, optional
+        String label used to annotate the colorbar. Default is ``None``.
+    marker_symbols : iterable[int | str], optional
+        Symbols defining the shape of markers. Must be of same length
+        as ``momenta``. For symbol names / codes, see:
+        https://plotly.com/python/marker-style/#custom-marker-symbols.
+        Default is ``None``.
+
+    Returns
+    -------
+    PlotlyFigure
+        Plotly figure of particles on the :math:`\\eta-\\phi` plane,
+        with edges connecting adjacent particles, defined by ``radius``.
+    """
+    pmu = _iterable_to_momentum(pmu)
+    NUM_PCLS = len(pmu)
+    layout_opts = dict()
+    if title is not None:
+        layout_opts["title"] = title
+    marker_opts: ty.Dict[str, ty.Any] = dict(size=10, line_width=1)
+    if color is not None:
+        if not isinstance(color, cla.Sized):
+            color = np.fromiter(color, dtype="<f8", count=NUM_PCLS)
+        marker_opts["color"] = color
+        marker_opts["colorbar"] = dict(
+            thickness=15,
+            xanchor="left",
+            titleside="right",
+        )
+        if colorbar_title is not None:
+            marker_opts["colorbar"]["title"] = colorbar_title
+        if marker_symbols is not None:
+            marker_opts["symbol"] = marker_symbols
+    adj_matrix = pmu.delta_R(pmu) < radius
+    eta_edge = _edge_pos(pmu.eta, adj_matrix)
+    phi_edge = _edge_pos(pmu.phi, adj_matrix)
+    edge_trace = go.Scatter(
+        x=eta_edge,
+        y=phi_edge,
+        line=dict(width=0.5, color="#686a72"),
+        hoverinfo="none",
+        mode="lines",
+        showlegend=False,
+    )
+    node_trace = go.Scatter(
+        x=list(pmu.eta),
+        y=list(pmu.phi),
+        mode="markers",
+        showlegend=False,
+        marker=marker_opts,
+    )
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            titlefont_size=16,
+            hovermode="closest",
+            margin=dict(b=20, l=5, r=5, t=40),
+            xaxis=dict(
+                showgrid=True,
+                zeroline=False,
+                showticklabels=True,
+                title_text="Pseudorapidity",
+            ),
+            yaxis=dict(
+                showgrid=True,
+                zeroline=False,
+                showticklabels=True,
+                title_text="Azimuth",
+            ),
+            **layout_opts,
+        ),
+    )
     return fig
 
 
