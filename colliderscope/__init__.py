@@ -545,7 +545,7 @@ class Histogram:
 
     def to_json(
         self,
-        fname: ty.Union[str, Path, io.TextIOBase],
+        fname: ty.Union[str, Path, io.IOBase],
         encoding: str = "utf-8",
     ) -> None:
         """Serialise and store ``Histogram`` object as a JSON file.
@@ -560,20 +560,24 @@ class Histogram:
             Standard used to encode the text into binary formats.
             Default is ``"utf-8"``.
         """
+        data = dc.asdict(self)
+        for key, val in data.items():
+            if isinstance(val, np.ndarray):
+                data[key] = val.tolist()
         if isinstance(fname, io.TextIOBase):
-            f = fname
+            json.dump(data, fname)
+        elif isinstance(fname, io.IOBase):
+            with io.StringIO() as f:
+                json.dump(data, f)
+                fname.write(f.getvalue().encode(encoding))
         else:
             fname = Path(fname)
             if fname.suffix == ".gz":
                 f = gz.open(fname, mode="wt", encoding=encoding)
             else:
                 f = open(fname, mode="w", encoding=encoding)
-        data = dc.asdict(self)
-        for key, val in data.items():
-            if isinstance(val, np.ndarray):
-                data[key] = val.tolist()
-        with f:
-            json.dump(data, f)
+            with f:
+                json.dump(data, f)
 
     @classmethod
     def from_json(
@@ -597,11 +601,15 @@ class Histogram:
         Histogram
             Instance loaded from JSON stored data.
         """
-        fname = Path(fname)
-        if fname.suffix == ".gz":
-            f = gz.open(fname, mode="rt", encoding=encoding)
+        if isinstance(fname, (str, Path)):
+            fname = Path(fname)
+            if fname.suffix == ".gz":
+                f = gz.open(fname, mode="rt", encoding=encoding)
+            else:
+                f = open(fname, encoding=encoding)
         else:
-            f = open(fname, encoding=encoding)
+            f = fname
+            f.seek(0)
         with f:
             data = json.load(f)
         hist = cls(
