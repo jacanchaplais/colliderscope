@@ -877,14 +877,14 @@ def eta_phi_network(
         with edges connecting adjacent particles, defined by ``radius``.
     """
     pmu = _iterable_to_momentum(pmu)
-    num_points = len(pmu)
+    NUM_PCLS = len(pmu)
     layout_opts = dict()
     if title is not None:
         layout_opts["title"] = title
     marker_opts: ty.Dict[str, ty.Any] = dict(size=10, line_width=1)
     if color is not None:
         if not isinstance(color, cla.Sized):
-            color = np.fromiter(color, dtype="<f8", count=num_points)
+            color = np.fromiter(color, dtype="<f8", count=NUM_PCLS)
         marker_opts["color"] = color
         marker_opts["colorbar"] = dict(
             thickness=15,
