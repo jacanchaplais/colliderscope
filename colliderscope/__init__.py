@@ -550,6 +550,9 @@ class Histogram:
     ) -> None:
         """Serialise and store ``Histogram`` object as a JSON file.
 
+        .. versionchanged:: 0.2.3
+           ``fname`` accepts file-like object.
+
         Parameters
         ----------
         fname : str or Path or file-like
@@ -587,6 +590,9 @@ class Histogram:
     ) -> "Histogram":
         """Instantiate a histogram from JSON file, encoded using the
         ``Histogram.to_json()`` method.
+
+        .. versionchanged:: 0.2.3
+           ``fname`` accepts file-like object.
 
         Parameters
         ----------
