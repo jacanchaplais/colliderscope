@@ -8,6 +8,7 @@ import collections as cl
 import collections.abc as cla
 import dataclasses as dc
 import gzip as gz
+import io
 import itertools as it
 import json
 import operator as op
@@ -544,40 +545,54 @@ class Histogram:
 
     def to_json(
         self,
-        fname: ty.Union[str, Path],
+        fname: ty.Union[str, Path, io.IOBase],
         encoding: str = "utf-8",
     ) -> None:
         """Serialise and store ``Histogram`` object as a JSON file.
 
+        .. versionchanged:: 0.2.3
+           ``fname`` accepts file-like object.
+
         Parameters
         ----------
-        fname : str or Path
-            Location on disk to save the data. If ``gzip`` compression
-            is desired, use the ``".gz"`` extension.
+        fname : str or Path or file-like
+            Location on disk, or file-object, to save the data. If
+            ``gzip`` compression is desired, use the ``".gz"``
+            extension.
         encoding : str
             Standard used to encode the text into binary formats.
             Default is ``"utf-8"``.
         """
-        fname = Path(fname)
-        if fname.suffix == ".gz":
-            f = gz.open(fname, mode="wt", encoding=encoding)
-        else:
-            f = open(fname, mode="w", encoding=encoding)
         data = dc.asdict(self)
         for key, val in data.items():
             if isinstance(val, np.ndarray):
                 data[key] = val.tolist()
-        with f:
-            json.dump(data, f)
+        if isinstance(fname, io.TextIOBase):
+            json.dump(data, fname)
+        elif isinstance(fname, io.IOBase):
+            with io.StringIO() as f:
+                json.dump(data, f)
+                fname.write(f.getvalue().encode(encoding))
+        else:
+            fname = Path(fname)
+            if fname.suffix == ".gz":
+                f = gz.open(fname, mode="wt", encoding=encoding)
+            else:
+                f = open(fname, mode="w", encoding=encoding)
+            with f:
+                json.dump(data, f)
 
     @classmethod
     def from_json(
         cls,
-        fname: ty.Union[str, Path],
+        fname: ty.Union[str, Path, io.IOBase],
         encoding: str = "utf-8",
     ) -> "Histogram":
         """Instantiate a histogram from JSON file, encoded using the
         ``Histogram.to_json()`` method.
+
+        .. versionchanged:: 0.2.3
+           ``fname`` accepts file-like object.
 
         Parameters
         ----------
@@ -592,11 +607,15 @@ class Histogram:
         Histogram
             Instance loaded from JSON stored data.
         """
-        fname = Path(fname)
-        if fname.suffix == ".gz":
-            f = gz.open(fname, mode="rt", encoding=encoding)
+        if isinstance(fname, (str, Path)):
+            fname = Path(fname)
+            if fname.suffix == ".gz":
+                f = gz.open(fname, mode="rt", encoding=encoding)
+            else:
+                f = open(fname, encoding=encoding)
         else:
-            f = open(fname, encoding=encoding)
+            f = fname
+            f.seek(0)
         with f:
             data = json.load(f)
         hist = cls(
