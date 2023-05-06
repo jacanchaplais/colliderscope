@@ -871,7 +871,7 @@ def eta_phi_network(
     ----------
     pmu : iterable[tuple[float, float, float, float]]
         Representing the four-momenta of the particles, in the order
-        :math:`x, y, z, e`. Numpy arrays with four columns, or
+        :math:`x, y, z, E`. Numpy arrays with four columns, or
         graphicle ``MomentumArrays`` may be passed.
     radius : float
         Interparticle angular distance on the :math:`\\eta-\\phi` plane
