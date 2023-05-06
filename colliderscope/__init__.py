@@ -753,11 +753,13 @@ def _iterable_to_pdg(
 
 def eta_phi_scatter(
     pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
-    pdg: ty.Iterable[int],
+    pdg: ty.Optional[ty.Iterable[int]] = None,
     masks: ty.Optional[ty.Mapping[str, ty.Iterable[bool]]] = None,
-    eta_max: ty.Optional[float] = 2.5,
-    pt_min: ty.Optional[float] = 0.5,
+    eta_max: ty.Optional[float] = None,
+    pt_min: ty.Optional[float] = None,
     indices: ty.Optional[ty.Iterable[int]] = None,
+    title: ty.Optional[str] = None,
+    pi_units: bool = True,
 ) -> "PlotlyFigure":
     """Produces a scatter plot of particles over the
     :math:`\\eta-\\phi`, *ie.* pseudorapidity-azimuth, plane.
@@ -766,35 +768,45 @@ def eta_phi_scatter(
 
     .. versionadded:: 0.2.0
 
+    .. versionchanged:: 0.2.3
+       Added ``pi_units`` and ``title`` parameters. Set defaults for
+       ``eta_max`` and ``pt_min`` as ``None``. Made ``pdg`` an optional
+       parameter.
+
     Parameters
     ----------
     pmu : iterable[tuple[float, float, float, float]]
         Four momenta of particles in basis :math:`(p_x, p_y, p_z, E)`.
-    pdg : iterable[int]
-        PDG particle identification codes.
+    pdg : iterable[int], optional
+        PDG particle identification codes. Default is ``None``.
     masks : mapping[str, iterable[bool]], optional
         Groups particles using key-value pairs, where the values are
         boolean masks identifying members of a group, and the keys are
         used in the plot legend. Default is ``None``.
     eta_max : float, optional
         Maximum cut-off for the pseudorapidity, :math:`\\eta`. Default
-        is ``2.5``.
+        is ``None``.
     pt_min : float, optional
         Minimum cut-off for the transverse momentum, :math:`p_T`.
-        Default is ``0.5``.
+        Default is ``None``.
     indices : iterable[int], optional
         Adds custom data indices to points on scatter plot. Mostly
         useful for keeping track of particles in ``Dash`` callbacks.
         Default is ``None``.
+    title : str, optional
+        Main heading for the figure. Default is ``None``.
+    pi_units : bool
+        If ``True``, will rescale the :math:`\\phi`-axis to range
+        :math:`[-1, 1]`, by putting it in units of :math:`\\pi`. Default
+        is ``True``.
 
     Returns
     -------
     PlotlyFigure
         Interactive scatter plot over the :math:`\\eta-\\phi` plane.
     """
-    pdg_ = _iterable_to_pdg(pdg)
-    NUM_PCLS = len(pdg_)
-    pmu_ = _iterable_to_momentum(pmu, count=NUM_PCLS)
+    pmu_ = _iterable_to_momentum(pmu)
+    NUM_PCLS = len(pmu_)
     vis_mask = gcl.MaskGroup(agg_op="and")  # type: ignore
     if eta_max is not None:
         vis_mask["eta"] = np.abs(pmu_.eta) < eta_max
@@ -804,17 +816,23 @@ def eta_phi_scatter(
         vis_mask["none"] = np.ones(NUM_PCLS, dtype="<?")
     NUM_VISIBLE = np.sum(vis_mask.data, dtype="<i4")
     vis_pmu = pmu_[vis_mask]
-    vis_pdg = pdg_[vis_mask]
-    df = pd.DataFrame(
-        {
-            "pt": vis_pmu.pt,
-            "eta": vis_pmu.eta,
-            "phi": vis_pmu.phi / np.pi,
-            "name": vis_pdg.name,
-            "size": _pt_size(vis_pmu.pt),
-            "group": np.full(NUM_VISIBLE, "background", dtype=object),
-        }
-    )
+    vis_phi = vis_pmu.phi
+    eta_unit = phi_unit = "(\\text{rad})"
+    if pi_units:
+        vis_phi = vis_phi.copy() / np.pi
+        phi_unit = "(\\pi \\text{ rad})"
+    data_dict = {
+        "pt": vis_pmu.pt,
+        "eta": vis_pmu.eta,
+        "phi": vis_phi,
+        "size": _pt_size(vis_pmu.pt),
+        "group": np.full(NUM_VISIBLE, "background", dtype=object),
+    }
+    if pdg is not None:
+        pdg_ = _iterable_to_pdg(pdg, count=NUM_PCLS)
+        vis_pdg = pdg_[vis_mask]
+        data_dict["name"] = vis_pdg.name
+    df = pd.DataFrame(data_dict)
     if masks is not None:
         for name, mask_ in masks.items():
             group_mask = np.fromiter(mask_, dtype="<?", count=NUM_PCLS)
@@ -829,14 +847,15 @@ def eta_phi_scatter(
         df,
         x="eta",
         y="phi",
+        title=title,
         color="group",
         symbol="group",
         size="size",
-        hover_data=["size", "pt", "name"],
+        hover_data=["size", "pt"] + ([] if pdg is None else ["name"]),
         custom_data=custom_data,
     )
-    fig.update_yaxes(title_text=r"$\phi\;\; (\pi \text{ rad})$")
-    fig.update_xaxes(title_text=r"$\eta$")
+    fig.update_yaxes(title_text=f"$\\phi\\;\\; {phi_unit}$")
+    fig.update_xaxes(title_text=f"$\\eta\\;\\; {eta_unit}$")
     return fig
 
 
@@ -857,6 +876,7 @@ def eta_phi_network(
     color: ty.Optional[ty.Iterable[float]] = None,
     colorbar_title: ty.Optional[str] = None,
     marker_symbols: ty.Optional[ty.Iterable[ty.Union[str, int]]] = None,
+    pi_units: bool = True,
 ) -> "PlotlyFigure":
     """Produces a Plotly figure which calculates interparticle distance,
     and connects particles in a network visualisation when they are
@@ -870,7 +890,7 @@ def eta_phi_network(
     ----------
     pmu : iterable[tuple[float, float, float, float]]
         Representing the four-momenta of the particles, in the order
-        :math:`x, y, z, e`. Numpy arrays with four columns, or
+        :math:`x, y, z, E`. Numpy arrays with four columns, or
         graphicle ``MomentumArrays`` may be passed.
     radius : float
         Interparticle angular distance on the :math:`\\eta-\\phi` plane
@@ -885,9 +905,13 @@ def eta_phi_network(
         String label used to annotate the colorbar. Default is ``None``.
     marker_symbols : iterable[int | str], optional
         Symbols defining the shape of markers. Must be of same length
-        as ``momenta``. For symbol names / codes, see:
+        as ``pmu``. For symbol names / codes, see:
         https://plotly.com/python/marker-style/#custom-marker-symbols.
         Default is ``None``.
+    pi_units : bool
+        If ``True``, will rescale the :math:`\\phi`-axis to range
+        :math:`[-1, 1]`, by putting it in units of :math:`\\pi`. Default
+        is ``True``.
 
     Returns
     -------
@@ -915,8 +939,14 @@ def eta_phi_network(
         if marker_symbols is not None:
             marker_opts["symbol"] = marker_symbols
     adj_matrix = pmu.delta_R(pmu) < radius
-    eta_edge = _edge_pos(pmu.eta, adj_matrix)
-    phi_edge = _edge_pos(pmu.phi, adj_matrix)
+    eta = pmu.eta
+    phi = pmu.phi
+    eta_unit = phi_unit = "(\\text{rad})"
+    if pi_units:
+        phi = phi.copy() / np.pi
+        phi_unit = "(\\pi \\text{ rad})"
+    eta_edge = _edge_pos(eta, adj_matrix)
+    phi_edge = _edge_pos(phi, adj_matrix)
     edge_trace = go.Scatter(
         x=eta_edge,
         y=phi_edge,
@@ -926,8 +956,8 @@ def eta_phi_network(
         showlegend=False,
     )
     node_trace = go.Scatter(
-        x=list(pmu.eta),
-        y=list(pmu.phi),
+        x=eta.tolist(),
+        y=phi.tolist(),
         mode="markers",
         showlegend=False,
         marker=marker_opts,
@@ -937,22 +967,22 @@ def eta_phi_network(
         layout=go.Layout(
             titlefont_size=16,
             hovermode="closest",
-            margin=dict(b=20, l=5, r=5, t=40),
+            margin=dict(b=80, l=80, r=80, t=80, pad=0),
             xaxis=dict(
                 showgrid=True,
                 zeroline=False,
                 showticklabels=True,
-                title_text="Pseudorapidity",
             ),
             yaxis=dict(
                 showgrid=True,
                 zeroline=False,
                 showticklabels=True,
-                title_text="Azimuth",
             ),
             **layout_opts,
         ),
     )
+    fig.update_yaxes(title_text=f"$\\phi\\;\\; {phi_unit}$")
+    fig.update_xaxes(title_text=f"$\\eta\\;\\; {eta_unit}$")
     return fig
 
 
