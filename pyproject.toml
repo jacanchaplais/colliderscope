@@ -23,7 +23,7 @@ dependencies = [
     "pyvis <=0.1.9",
     "colour",
     "webcolors",
-    "graphicle >=0.2.6",
+    "graphicle >=0.3.0",
     "plotly",
     "more-itertools >=2.1",
 ]
