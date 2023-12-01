@@ -88,8 +88,8 @@ def gcl_to_json(graph: gcl.Graphicle) -> str:
     df["final"] = graph.final.data
     df["pdg"] = graph.pdg.data
     df["status"] = graph.status.data
-    df["in"] = graph.edges["in"]
-    df["out"] = graph.edges["out"]
+    df["src"] = graph.edges["src"]
+    df["dst"] = graph.edges["dst"]
     df["color"] = graph.color.data["color"]
     df["anticolor"] = graph.color.data["anticolor"]
     for coord in "xyze":
@@ -102,7 +102,7 @@ def gcl_to_json(graph: gcl.Graphicle) -> str:
 
 
 def maskgroup_to_json(masks: gcl.MaskGroup[gcl.MaskArray]) -> str:
-    json_str = pd.DataFrame(masks.dict).to_json(
+    json_str = pd.DataFrame(masks.serialize()).to_json(
         date_format="iso", orient="split"
     )
     if json_str is None:
@@ -119,7 +119,7 @@ def json_to_gcl(json_str: str) -> gcl.Graphicle:
         status=df["status"].values,  # type: ignore
         pmu=df[list("xyze")].values,  # type: ignore
         color=df[["color", "anticolor"]].values,  # type: ignore
-        edges=df[["in", "out"]].values,  # type: ignore
+        edges=df[["src", "dst"]].values,  # type: ignore
     )
     lg.info("Reading JSON string into Graphicle object.")
     return graph
