@@ -1173,3 +1173,205 @@ def histogram_barchart(
         opacity=opacity,
     )
     return fig
+
+
+def _is_1d(data: np.ndarray) -> bool:
+    if len(data.shape) == 1:
+        return True
+    if all(elem == 1 for elem in data.shape[1:]):
+        return True
+    return False
+
+
+class Histogram2D:
+    """Constant memory 2D histogram data structure.
+
+    .. versionadded:: 0.3.0
+
+    :group: data
+
+    Parameters
+    ----------
+    num_bins_x, num_bins_y : int
+        Number of bins to store multiplicities within.
+    window_x, window_y : tuple[float, float]
+        Range of x-axis to use for binning.
+    dtype : DTypeLike
+        Numpy dtype specifier for the ``accumulate``. If you only need
+        integer counts per bin, it may be more efficient to set this to
+        ``numpy.int32`` or the like. For non-integer weighted updates,
+        use a floating point dtype. Default is ``numpy.float64``.
+
+    Attributes
+    ----------
+    num_bins_x, num_bins_y : int
+        Number of bins to store multiplicities within.
+    window_x, window_y : tuple[float, float]
+        Range of axis values over which the histogram should track.
+    bin_width_x, bin_width_y : float
+        Width between consecutive bins.
+    bin_edges_x, bin_edges_y : ndarray[float64]
+        Sequence of values defining the boundaries of the bins.
+    dtype : DTypeLike
+        Numpy dtype specifier for the ``accumulate``.
+    accumulate : ndarray[dtype]
+        2D array storing accumulated values in each bin.
+    total : {int, float}
+        Total number values passed to be binned, including those which
+        fell outside of the histogram (so are not displayed). If updates
+        are floating-point weighted, this will be a float. Otherwise
+        it's an int.
+    """
+
+    def __init__(
+        self,
+        num_bins_x: int,
+        window_x: ty.Tuple[float, float],
+        num_bins_y: int,
+        window_y: ty.Tuple[float, float],
+        dtype: npt.DTypeLike = np.float64,
+    ) -> None:
+        self.num_bins_x = num_bins_x
+        self.window_x = window_x
+        self.num_bins_y = num_bins_y
+        self.window_y = window_y
+        self.dtype = np.dtype(dtype)
+        self._total = 0
+        bin_width_x = abs((window_x[1] - window_x[0]) / num_bins_x)
+        bin_width_y = abs((window_y[1] - window_y[0]) / num_bins_y)
+        self.bin_width_x = bin_width_x
+        self.bin_width_y = bin_width_y
+        self.accumulate: base.IntVector = np.zeros(
+            (num_bins_y, num_bins_x), dtype=dtype
+        )
+        self.bin_edges_x = np.linspace(*window_x, num_bins_x + 1).squeeze()
+        self.bin_edges_y = np.linspace(*window_y, num_bins_y + 1).squeeze()
+
+    @property
+    def total(self) -> int:
+        return self._total
+
+    def _table_info(self) -> ty.List[ty.List[ty.Any]]:
+        xaxis = (
+            f"{self.num_bins_x} bins in range "
+            f"[{self.window_x[0]:.3f}, "
+            f"{self.window_x[1]:.3f})"
+        )
+        yaxis = (
+            f"{self.num_bins_y} bins in range "
+            f"[{self.window_y[0]:.3f}, "
+            f"{self.window_y[1]:.3f})"
+        )
+        missed = self.total - np.sum(self.accumulate).item()
+        return [
+            ["x-axis", xaxis],
+            ["y-axis", yaxis],
+            ["total", round(self.total, 3)],
+            ["missed", round(missed, 3)],
+            ["dtype", self.dtype],
+        ]
+
+    def __repr__(self) -> str:
+        table = tabulate(self._table_info(), tablefmt="simple")
+        return "Histogram2D\n" + table
+
+    def _repr_html_(self) -> str:
+        table = tabulate(self._table_info(), tablefmt="html")
+        return "Histogram2D<br />" + table
+
+    def update(
+        self,
+        x: ty.Union[base.DoubleVector, float, ty.Sequence[float]],
+        y: ty.Union[base.DoubleVector, float, ty.Sequence[float]],
+        weight: ty.Union[
+            base.DoubleVector, float, int, ty.Sequence[float]
+        ] = 1,
+    ) -> None:
+        """Performs an in-place update of the ``accumulate`` array,
+        performing counting bin hits from each :math:`x, y` coordinate
+        pair.
+
+        Parameters
+        ----------
+        x, y : {ndarray[float64], float, Sequence[float]}
+            Coordinate of the point to be binned. May pass a sequence,
+            numpy array, or float. The number of values of ``x`` and
+            ``y`` must be equal.
+        weight : {int, float, ndarray[float64], Sequence[float]}
+            Provides the weighting for the sum of bin hits. Must be
+            broadcastable with ``x`` and ``y``. Default is 1.
+
+        Raises
+        ------
+        ValueError
+            If ``x`` or ``y`` are not one-dimensional.
+        ValueError
+            If ``x`` and ``y`` are not the same length.
+        ValueError
+            If ``weight`` is not broadcastable to ``x`` and ``y`` shape.
+        """
+        x_is_float, y_is_float = isinstance(x, float), isinstance(y, float)
+        if x_is_float or y_is_float:
+            if not x_is_float and y_is_float:
+                raise ValueError("x and y must be same type.")
+        else:
+            if not isinstance(x, np.ndarray):
+                x = np.array(x)
+            if not isinstance(y, np.ndarray):
+                y = np.array(y)
+            if not (_is_1d(x) and _is_1d(y)):
+                raise ValueError("x and y must be 1d arrays.")
+            x, y = x.reshape(-1), y.reshape(-1)
+            if x.shape[0] != y.shape[0]:
+                raise ValueError("x and y must have the same length.")
+        x_idxs = np.digitize(x, self.bin_edges_x) - 1
+        y_idxs = np.digitize(y, self.bin_edges_y) - 1
+        hit_mask_x = np.logical_and(x > self.window_x[0], x < self.window_x[1])
+        hit_mask_y = np.logical_and(y > self.window_y[0], y < self.window_y[1])
+        hit_mask = np.logical_and(hit_mask_x, hit_mask_y)
+        if isinstance(weight, ty.Sized) and (
+            not isinstance(weight, np.ndarray)
+        ):
+            weight_message = "weight must be broadcastable to x and y length."
+            if x_is_float:
+                raise ValueError(weight_message)
+            weight = np.array(weight).reshape(-1)
+            if weight.shape[0] != x.shape[0]:
+                raise ValueError(weight_message)
+        if isinstance(weight, np.ndarray):
+            self._total += np.sum(weight)
+            weight = weight[hit_mask]
+        elif weight == 1:
+            self._total += 1 if x_is_float else x.shape[0]  # type: ignore
+        else:
+            self._total += weight
+        np.add.at(
+            self.accumulate, (y_idxs[hit_mask], x_idxs[hit_mask]), weight
+        )
+
+    @property
+    def density(self) -> base.DoubleVector:
+        """Probability density of the 2D histogram, normalised by the
+        total count of the histogram.
+        """
+        accumulate = self.accumulate
+        if not np.issubdtype(accumulate.dtype, np.floating):
+            accumulate = accumulate.astype(np.float64)
+        return accumulate / (self.total * self.bin_width_x * self.bin_width_y)
+
+    @property
+    def midpoints(self) -> ty.Tuple[base.DoubleVector, base.DoubleVector]:
+        """Midpoints of the bins along the x and y axes, respectively."""
+        offset_x, offset_y = 0.5 * self.bin_width_x, 0.5 * self.bin_width_y
+        return (
+            np.linspace(
+                self.window_x[0] + offset_x,
+                self.window_x[1] - offset_x,
+                self.num_bins_x,
+            ),
+            np.linspace(
+                self.window_y[0] + offset_y,
+                self.window_y[1] - offset_y,
+                self.num_bins_y,
+            ),
+        )
