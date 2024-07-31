@@ -21,12 +21,15 @@ import colour
 import graphicle as gcl
 import more_itertools as mit
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
+import typing_extensions as tyx
 import webcolors
 from pyvis.network import Network
 from scipy.stats import cauchy
+from tabulate import tabulate
 
 from . import base
 from ._version import __version__, __version_tuple__
@@ -453,6 +456,20 @@ def shower_dag(
     return net.write_html(str(output), notebook=notebook)
 
 
+class SerializedHistogram(ty.TypedDict):
+    window: ty.Tuple[float, float]
+    num_bins: int
+    counts: ty.List[int]
+    total: int
+
+
+class _HistogramInterface(ty.NamedTuple):
+    window: ty.Tuple[float, float]
+    num_bins: int
+    counts: base.IntVector
+    total: int
+
+
 @dc.dataclass
 class Histogram:
     """Constant memory histogram data structure.
@@ -544,12 +561,20 @@ class Histogram:
         hist._total = self._total + other._total
         return hist
 
-    def update(self, val: float) -> None:
+    @property
+    def total(self) -> int:
+        return self._total
+
+    def update(self, val: base.HistValue) -> None:
         """Records a new value to the binned counts."""
         idx = np.digitize(val, self.bin_edges) - 1
-        if -1 < idx < self.num_bins:
-            self.counts[idx] += 1
-        self._total += 1
+        if np.isscalar(idx):
+            if -1 < idx < self.num_bins:
+                self.counts[idx] += 1
+            self._total += 1
+            return
+        mask = np.logical_and(idx > -1, idx < self.num_bins)
+        np.add.at(self.counts, idx[mask], 1)
 
     def to_json(
         self,
@@ -647,10 +672,75 @@ class Histogram:
         """Bin centers and count density. May be used for bar chart
         plots.
         """
-        return (
-            (self.bin_edges[1:] + self.bin_edges[:-1]) / 2.0,
-            self.counts / (self._total * self.bin_width),
+        return self.midpoints(), self.density()
+
+    def density(self) -> base.DoubleVector:
+        """Probability density of the histogram, normalised by the total
+        count of the histogram.
+        """
+        return self.counts.astype(np.float64) / (self._total * self.bin_width)
+
+    def midpoints(self) -> base.DoubleVector:
+        """Midpoints of the bins along the x and y axes, respectively."""
+        offset = 0.5 * self.bin_width
+        return np.linspace(
+            self.window[0] + offset, self.window[1] - offset, self.num_bins
         )
+
+    def serialize(self) -> SerializedHistogram:
+        """Converts ``Histogram`` into serialized representation."""
+        return {
+            "window": self.window,
+            "num_bins": self.num_bins,
+            "counts": self.counts.tolist(),
+            "total": self.total,
+        }
+
+    @classmethod
+    def from_interface(
+        cls, hist: base.HistogramLike, copy: bool = True
+    ) -> tyx.Self:
+        """Instantiates ``Histogram`` from a generic ``HistogramLike``
+        interface.
+
+        Parameters
+        ----------
+        hist : HistogramLike
+            The histogram data to convert.
+        copy : bool
+            If ``True``, the data from the ``counts`` attribute will be
+            copied to the returned instance. If ``False``, they will
+            share the same underlying memory. Default is ``True``.
+
+        Returns
+        -------
+        Histogram
+            ``Histogram`` instance, converted from input histogram.
+        """
+        this_hist = cls(
+            num_bins=hist.num_bins,
+            window=hist.window,
+        )
+        this_hist._total = hist.total
+        if copy:
+            this_hist.counts[...] = hist.counts[...]
+            return this_hist
+        this_hist.counts = hist.counts
+        return this_hist
+
+    @classmethod
+    def from_serialized(cls, hist_dict: SerializedHistogram) -> tyx.Self:
+        """Instantiates ``Histogram`` from serialized data."""
+        return cls.from_interface(
+            _HistogramInterface(
+                counts=np.array(hist_dict.pop("counts"), dtype=np.int32),
+                **hist_dict,
+            )
+        )
+
+    def copy(self: tyx.Self) -> tyx.Self:
+        """Returns a copy of the ``Histogram`` instance."""
+        return type(self).from_interface(self, copy=True)
 
 
 def breit_wigner_pdf(
@@ -695,7 +785,7 @@ def breit_wigner_pdf(
     return cauchy.pdf(x=energy, loc=mass_centre, scale=half_width)
 
 
-def hist_to_bw_params(hist: Histogram) -> ty.Tuple[float, float]:
+def hist_to_bw_params(hist: base.HistogramLike) -> ty.Tuple[float, float]:
     """Parameters which fit a *Breit-Wigner* distribution to the passed
     ``Histogram``.
 
@@ -713,6 +803,8 @@ def hist_to_bw_params(hist: Histogram) -> ty.Tuple[float, float]:
     tuple[float, float]
         Mass centre and width of the Breit-Wigner peak, respectively.
     """
+    if not isinstance(hist, Histogram):
+        hist = Histogram.from_interface(hist)
     e_iter_nested = it.starmap(
         lambda e, count: [e] * count.item(), zip(hist.pdf[0], hist.counts)
     )
@@ -1005,12 +1097,16 @@ def eta_phi_network(
 
 
 def histogram_barchart(
-    hist: ty.Union[Histogram, ty.Tuple[base.DoubleVector, base.DoubleVector]],
+    hist: ty.Union[
+        base.HistogramLike, ty.Tuple[base.DoubleVector, base.DoubleVector]
+    ],
     hist_label: str,
     title: str = "",
     x_label: str = "x",
     y_label: str = "Probability density",
-    overlays: ty.Optional[ty.Dict[str, base.DoubleVector]] = None,
+    overlays: ty.Optional[
+        ty.Dict[str, ty.Union[base.HistogramLike, base.DoubleVector]]
+    ] = None,
     opacity: float = 0.6,
 ) -> "PlotlyFigure":
     """Automatically convert a ``Histogram`` object, and optionally a
@@ -1030,11 +1126,11 @@ def histogram_barchart(
         Heading for the plot. Default is ``""``.
     x_label, y_label : str
         Axis labels.
-    overlays : dict[str, ndarray[float64]], optional
+    overlays : dict[str, ndarray[float64] | HistogramLike], optional
         Additional PDFs to overlay on the same plot. Keys are the labels
-        displayed in the plot legend, and values are densities
-        corresponding to the same x-bins of ``hist``. Default is
-        ``None``.
+        displayed in the plot legend, and values are histograms, or
+        densities corresponding to the same x-bins of ``hist``. Default
+        is ``None``.
     opacity : float
         Value in range [0, 1] setting how opaque bars are. If using
         many overlays, lower values may improve visual clarity. Default
@@ -1045,12 +1141,25 @@ def histogram_barchart(
     PlotlyFigure
         Interactive ``plotly`` bar chart figure.
     """
-    midpoints, pdf = hist.pdf if isinstance(hist, Histogram) else hist
+    if isinstance(hist, tuple) and not isinstance(hist, ty.NamedTuple):
+        midpoints, pdf = hist
+    else:
+        if not isinstance(hist, Histogram):
+            hist = Histogram.from_interface(hist)  # type: ignore
+        midpoints, pdf = hist.midpoints(), hist.density()
     data_map = {x_label: midpoints, hist_label: pdf}
     if overlays is not None:
-        overlays = cl.OrderedDict(overlays)
-        overlays.update(data_map)
-        data_map = overlays
+        overlays_ = cl.OrderedDict()
+        for key, val in overlays.items():
+            if isinstance(val, np.ndarray):
+                overlays_[key] = val
+                continue
+            if not isinstance(val, Histogram):
+                overlays_[key] = Histogram.from_interface(val).density()
+                continue
+            overlays_[key] = val.density()
+        overlays_.update(data_map)
+        data_map = overlays_
     data = pd.DataFrame(data_map)
     data_map.pop(x_label)
     legend_labels = list(data_map.keys())
