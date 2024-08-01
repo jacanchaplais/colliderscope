@@ -1108,11 +1108,15 @@ def histogram_barchart(
         ty.Dict[str, ty.Union[base.HistogramLike, base.DoubleVector]]
     ] = None,
     opacity: float = 0.6,
+    bar_style: ty.Literal["bar", "line"] = "bar",
 ) -> "PlotlyFigure":
     """Automatically convert a ``Histogram`` object, and optionally a
     number of ``overlays``, into a ``plotly`` bar chart / histogram.
 
     :group: figs
+
+    .. versionchanged:: 0.2.6
+    Added ``bar_style`` parameter.
 
     Parameters
     ----------
@@ -1135,6 +1139,11 @@ def histogram_barchart(
         Value in range [0, 1] setting how opaque bars are. If using
         many overlays, lower values may improve visual clarity. Default
         is ``0.6``.
+    bar_style : {'bar', 'line'}
+        If passed as 'bar', the output will be adjacent column bars with
+        a fill according to opacity. If 'line', continuous lines tracing
+        the height of the bars will be created. In the latter case,
+        opacity has no effect. Default is 'bar'.
 
     Returns
     -------
@@ -1163,16 +1172,16 @@ def histogram_barchart(
     data = pd.DataFrame(data_map)
     data_map.pop(x_label)
     legend_labels = list(data_map.keys())
-    fig = px.bar(
-        data,
-        x=x_label,
-        y=legend_labels,
-        labels={"x": x_label, "value": y_label},
-        title=title,
-        barmode="overlay",
-        opacity=opacity,
-    )
-    return fig
+    params = {
+        "data_frame": data,
+        "x": x_label,
+        "y": legend_labels,
+        "labels": {"x": x_label, "value": y_label},
+        "title": title,
+    }
+    if bar_style == "bar":
+        return px.bar(barmode="overlay", opacity=opacity, **params)
+    return px.line(line_shape="hvh", **params).update_yaxes(rangemode="tozero")
 
 
 def _is_1d(data: np.ndarray) -> bool:
