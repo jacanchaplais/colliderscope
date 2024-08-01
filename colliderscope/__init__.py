@@ -259,6 +259,7 @@ def shower_dag(
     height: ty.Union[int, str] = 750,
     notebook: bool = False,
     hover_width: int = 80,
+    annotations: ty.Optional[ty.Iterable[str]] = None,
 ) -> ty.Optional["IFrame"]:
     """HTML visualisation of a full event history as a directed acyclic
     graph (DAG).
@@ -408,10 +409,15 @@ def shower_dag(
         size=[10] * NUM_NODES,
         color=["black"] * NUM_NODES,
     )
-    particle_iter = zip(edge_tup, roots, leaves, pdgs.name, masks_iter)
-    for edge, root, leaf, name, mask in particle_iter:
-        node_pdgs[edge.src].outgoing.append(name)
-        node_pdgs[edge.dst].incoming.append(name)
+    if annotations is None:
+        annotations = it.repeat("")
+    particle_iter = zip(
+        edge_tup, roots, leaves, pdgs.name, masks_iter, annotations
+    )
+    for edge, root, leaf, name, mask, annotation in particle_iter:
+        name_str = f"{name} ({annotation})" if annotation else name
+        node_pdgs[edge.src].outgoing.append(name_str)
+        node_pdgs[edge.dst].incoming.append(name_str)
         out_vtx = net.node_map[edge.dst]
         in_vtx = net.node_map[edge.src]
         if root:
@@ -436,6 +442,8 @@ def shower_dag(
         in_str = "<br />".join(wrapper.wrap(", ".join(pcls_in)))
         out_str = "<br />".join(wrapper.wrap(", ".join(pcls_out)))
         node_dict["title"] = (
+            f"<u>Node {node_id}</u>"
+            "<br /><br />"
             f"<b>Particles in ({len(pcls_in)}):</b><br />{in_str}"
             "<br /><br />"
             f"<b>Particles out ({len(pcls_out)}):</b><br />{out_str}"
@@ -871,7 +879,10 @@ def _edge_pos(
 
 def eta_phi_network(
     pmu: ty.Iterable[ty.Tuple[float, float, float, float]],
-    radius: float,
+    radius: ty.Optional[float] = None,
+    adj_matrix: ty.Optional[
+        ty.Union[base.BoolVector, base.DoubleVector]
+    ] = None,
     title: ty.Optional[str] = None,
     color: ty.Optional[ty.Iterable[float]] = None,
     colorbar_title: ty.Optional[str] = None,
@@ -892,9 +903,13 @@ def eta_phi_network(
         Representing the four-momenta of the particles, in the order
         :math:`x, y, z, E`. Numpy arrays with four columns, or
         graphicle ``MomentumArrays`` may be passed.
-    radius : float
+    radius : float, optional
         Interparticle angular distance on the :math:`\\eta-\\phi` plane
         below which nodes in the network will be considered adjacent.
+        Default is ``None``.
+    adj_matrix : ndarray[bool_] or ndarray[float64], optional
+        Alternatively to passing ``radius``, ``adj_matrix`` can specify
+        the neighbourhood directly. Default is ``None``.
     title : str, optional
         Main heading for the figure. Default is ``None``.
     color : iterable[float], optional
@@ -919,6 +934,8 @@ def eta_phi_network(
         Plotly figure of particles on the :math:`\\eta-\\phi` plane,
         with edges connecting adjacent particles, defined by ``radius``.
     """
+    if bool(radius) ^ bool(adj_matrix):
+        raise ValueError("Either radius or adjacency must be passed.")
     pmu = _iterable_to_momentum(pmu)
     NUM_PCLS = len(pmu)
     layout_opts = dict()
@@ -938,7 +955,8 @@ def eta_phi_network(
             marker_opts["colorbar"]["title"] = colorbar_title
         if marker_symbols is not None:
             marker_opts["symbol"] = marker_symbols
-    adj_matrix = pmu.delta_R(pmu) < radius
+    if radius:
+        adj_matrix = pmu.delta_R(pmu) < radius
     eta = pmu.eta
     phi = pmu.phi
     eta_unit = phi_unit = "(\\text{rad})"
@@ -987,7 +1005,7 @@ def eta_phi_network(
 
 
 def histogram_barchart(
-    hist: Histogram,
+    hist: ty.Union[Histogram, ty.Tuple[base.DoubleVector, base.DoubleVector]],
     hist_label: str,
     title: str = "",
     x_label: str = "x",
@@ -1002,8 +1020,10 @@ def histogram_barchart(
 
     Parameters
     ----------
-    hist : Histogram
-        Histogram data to render.
+    hist : Histogram or tuple[ndarray[float], ndarray[float]]
+        Histogram data to render. May either be passed as a
+        ``Histogram`` instance, or a two-tuple of numpy arrays of bin
+        centres and probability densities, respectively.
     hist_label : str
         Label for the histogram in the plot legend.
     title: str
@@ -1025,7 +1045,8 @@ def histogram_barchart(
     PlotlyFigure
         Interactive ``plotly`` bar chart figure.
     """
-    data_map = {x_label: hist.pdf[0], hist_label: hist.pdf[1]}
+    midpoints, pdf = hist.pdf if isinstance(hist, Histogram) else hist
+    data_map = {x_label: midpoints, hist_label: pdf}
     if overlays is not None:
         overlays = cl.OrderedDict(overlays)
         overlays.update(data_map)

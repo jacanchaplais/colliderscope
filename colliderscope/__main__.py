@@ -84,9 +84,7 @@ def main(
     )(next_event)
     app.callback(
         Output("mask-data", "data"),
-        Output("root-masks", "data"),
         Input("graph-data", "data"),
-        Input("parton-exp", "value"),
     )(webui.gen_masks)
     app.callback(
         Output("figure", "figure"),
@@ -99,7 +97,7 @@ def main(
         Output("masses", "children"),
         Input("figure", "selectedData"),
         Input("graph-data", "data"),
-        Input("root-masks", "data"),
+        Input("mask-data", "data"),
         Input("eta-max", "value"),
         Input("pt-min", "value"),
     )(webui.select_mass)
@@ -108,7 +106,6 @@ def main(
         Output("save-dag", "n_clicks"),
         Input("save-dag", "n_clicks"),
         Input("graph-data", "data"),
-        Input("mask-data", "data"),
         Input("event-num", "data"),
         Input("seed", "data"),
         prevent_initial_call=True,
@@ -134,13 +131,6 @@ def main(
             html.H3("Minimum transverse momentum:"),
             dcc.Slider(id="pt-min", min=0.0, max=10.0, value=0.5, step=0.25),
             html.Div(
-                id="exponents",
-                children=[
-                    dcc.Input(id="parton-exp", type="number", value=-0.1),
-                    dcc.Input(id="hadron-exp", type="number", value=-0.1),
-                ],
-            ),
-            html.Div(
                 id="controls",
                 children=[
                     html.Button(
@@ -154,7 +144,6 @@ def main(
             ),
             dcc.Store(id="graph-data"),
             dcc.Store(id="mask-data"),
-            dcc.Store(id="root-masks"),
             dcc.Store(id="event-num"),
             dcc.Store(id="seed", data=seed),
         ]
