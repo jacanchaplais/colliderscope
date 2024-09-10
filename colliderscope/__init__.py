@@ -1402,3 +1402,28 @@ class Histogram2D:
                 self.num_bins_y,
             ),
         )
+
+    def serialize(self) -> ty.Dict[str, ty.Any]:
+        """Converts ``Histogram2D`` into serialized representation."""
+        return {
+            "num_bins_x": self.num_bins_x,
+            "num_bins_y": self.num_bins_y,
+            "window_x": self.window_x,
+            "window_y": self.window_y,
+            "dtype": np.dtype(self.dtype).str,
+            "accumulate": self.accumulate.tolist(),
+            "total": self.total,
+        }
+
+    @classmethod
+    def from_serialized(cls, data: ty.Dict[str, ty.Any]) -> tyx.Self:
+        accumulate = data.pop("accumulate", None)
+        if accumulate is None:
+            raise ValueError("Must have `accumulate` item in data dictionary")
+        total = data.pop("total", None)
+        if total is None:
+            raise ValueError("Must have `total` item in data dictionary")
+        hist2d = cls(**data)
+        hist2d.accumulate[...] = accumulate
+        hist2d._total = total
+        return hist2d
