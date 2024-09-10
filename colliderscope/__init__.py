@@ -538,10 +538,12 @@ class Histogram:
         self.bin_edges = np.linspace(*self.x_range, self.num_bins + 1)
         self.bin_edges = self.bin_edges.squeeze()
 
-    def __eq__(self, other: "Histogram") -> bool:
+    def __eq__(self, other: tyx.Self) -> bool:
         """Determines if two ``Histogram`` instances contain the same
         ``bin_edges``, ``counts``, and normalisation for ``pdf``.
         """
+        if not isinstance(other, type(self)):
+            raise TypeError("Cannot compare Histogram with different types.")
         eq = np.array_equal(self.bin_edges, other.bin_edges)
         eq = eq and np.array_equal(self.counts, other.counts)
         eq = eq and (self._total == other._total)
