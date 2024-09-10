@@ -23,6 +23,7 @@ __all__ = [
 BoolVector: tyx.TypeAlias = npt.NDArray[np.bool_]
 IntVector: tyx.TypeAlias = npt.NDArray[np.int32]
 DoubleVector: tyx.TypeAlias = npt.NDArray[np.float64]
+NumberVector: tyx.TypeAlias = npt.NDArray[np.number]
 VoidVector: tyx.TypeAlias = npt.NDArray[np.void]
 AnyVector: tyx.TypeAlias = npt.NDArray[ty.Any]
 
