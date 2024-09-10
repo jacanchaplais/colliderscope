@@ -1243,20 +1243,36 @@ class Histogram2D:
         dtype: npt.DTypeLike = np.float64,
     ) -> None:
         self.num_bins_x = num_bins_x
-        self.window_x = window_x
+        self.window_x = tuple(window_x)
         self.num_bins_y = num_bins_y
-        self.window_y = window_y
+        self.window_y = tuple(window_y)
         self.dtype = np.dtype(dtype)
         self._total = 0
         bin_width_x = abs((window_x[1] - window_x[0]) / num_bins_x)
         bin_width_y = abs((window_y[1] - window_y[0]) / num_bins_y)
         self.bin_width_x = bin_width_x
         self.bin_width_y = bin_width_y
-        self.accumulate: base.IntVector = np.zeros(
+        self.accumulate: base.NumberVector = np.zeros(
             (num_bins_y, num_bins_x), dtype=dtype
         )
         self.bin_edges_x = np.linspace(*window_x, num_bins_x + 1).squeeze()
         self.bin_edges_y = np.linspace(*window_y, num_bins_y + 1).squeeze()
+
+    def __eq__(self, other: tyx.Self) -> bool:
+        if not isinstance(other, type(self)):
+            raise TypeError("Cannot compare Histogram2D with different types.")
+        for attrib in (
+            "window_x",
+            "window_y",
+            "num_bins_x",
+            "num_bins_y",
+            "dtype",
+        ):
+            if getattr(self, attrib) != getattr(other, attrib):
+                return False
+        if not np.array_equal(self.accumulate, other.accumulate):
+            return False
+        return True
 
     @property
     def total(self) -> int:
