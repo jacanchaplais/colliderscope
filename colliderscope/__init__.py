@@ -478,6 +478,9 @@ class Histogram:
        Migrated from ``data`` module.
        Renamed ``_align`` parameter to ``align``.
 
+    .. versionchanged:: 0.2.7
+       Added ``missed`` property for number of out-of-bounds updates.
+
     :group: data
 
     Parameters
@@ -679,7 +682,9 @@ class Histogram:
 
     @property
     def missed(self) -> int:
-        """Number of updates which missed the bounds of the histogram."""
+        """Number of update values which fell out-of-bounds of the
+        histogram's domain.
+        """
         return self.total - np.sum(self.counts).item()
 
     def density(self) -> base.DoubleVector:
@@ -1203,7 +1208,11 @@ def _is_1d(data: np.ndarray) -> bool:
 class Histogram2D:
     """Constant memory 2D histogram data structure.
 
-    .. versionadded:: 0.3.0
+    .. versionadded:: 0.2.6
+
+    .. versionchanged:: 0.2.7
+       Added serialize / from_serialized methods for easy IO.
+       Added ``missed`` property for number of out-of-bounds updates.
 
     :group: data
 
@@ -1410,6 +1419,9 @@ class Histogram2D:
 
     @property
     def missed(self) -> ty.Union[float, int]:
+        """Number of update values which fell out-of-bounds of the
+        histogram's domain.
+        """
         return self.total - np.sum(self.accumulate).item()
 
     def serialize(self) -> ty.Dict[str, ty.Any]:
@@ -1426,6 +1438,7 @@ class Histogram2D:
 
     @classmethod
     def from_serialized(cls, data: ty.Dict[str, ty.Any]) -> tyx.Self:
+        """Instantiates ``Histogram2D`` from serialized data."""
         accumulate = data.pop("accumulate", None)
         if accumulate is None:
             raise ValueError("Must have `accumulate` item in data dictionary")
