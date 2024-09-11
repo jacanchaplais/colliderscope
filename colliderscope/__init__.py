@@ -478,6 +478,9 @@ class Histogram:
        Migrated from ``data`` module.
        Renamed ``_align`` parameter to ``align``.
 
+    .. versionchanged:: 0.2.7
+       Added ``missed`` property for number of out-of-bounds updates.
+
     :group: data
 
     Parameters
@@ -538,10 +541,12 @@ class Histogram:
         self.bin_edges = np.linspace(*self.x_range, self.num_bins + 1)
         self.bin_edges = self.bin_edges.squeeze()
 
-    def __eq__(self, other: "Histogram") -> bool:
+    def __eq__(self, other: tyx.Self) -> bool:
         """Determines if two ``Histogram`` instances contain the same
         ``bin_edges``, ``counts``, and normalisation for ``pdf``.
         """
+        if not isinstance(other, type(self)):
+            raise TypeError("Cannot compare Histogram with different types.")
         eq = np.array_equal(self.bin_edges, other.bin_edges)
         eq = eq and np.array_equal(self.counts, other.counts)
         eq = eq and (self._total == other._total)
@@ -575,6 +580,7 @@ class Histogram:
             return
         mask = np.logical_and(idx > -1, idx < self.num_bins)
         np.add.at(self.counts, idx[mask], 1)
+        self._total += idx.reshape(-1).shape[0]
 
     def to_json(
         self,
@@ -673,6 +679,13 @@ class Histogram:
         plots.
         """
         return self.midpoints(), self.density()
+
+    @property
+    def missed(self) -> int:
+        """Number of update values which fell out-of-bounds of the
+        histogram's domain.
+        """
+        return self.total - np.sum(self.counts).item()
 
     def density(self) -> base.DoubleVector:
         """Probability density of the histogram, normalised by the total
@@ -1195,7 +1208,11 @@ def _is_1d(data: np.ndarray) -> bool:
 class Histogram2D:
     """Constant memory 2D histogram data structure.
 
-    .. versionadded:: 0.3.0
+    .. versionadded:: 0.2.6
+
+    .. versionchanged:: 0.2.7
+       Added serialize / from_serialized methods for easy IO.
+       Added ``missed`` property for number of out-of-bounds updates.
 
     :group: data
 
@@ -1241,20 +1258,36 @@ class Histogram2D:
         dtype: npt.DTypeLike = np.float64,
     ) -> None:
         self.num_bins_x = num_bins_x
-        self.window_x = window_x
+        self.window_x: ty.Tuple[float, float] = tuple(window_x)
         self.num_bins_y = num_bins_y
-        self.window_y = window_y
+        self.window_y: ty.Tuple[float, float] = tuple(window_y)
         self.dtype = np.dtype(dtype)
         self._total = 0
         bin_width_x = abs((window_x[1] - window_x[0]) / num_bins_x)
         bin_width_y = abs((window_y[1] - window_y[0]) / num_bins_y)
         self.bin_width_x = bin_width_x
         self.bin_width_y = bin_width_y
-        self.accumulate: base.IntVector = np.zeros(
+        self.accumulate: base.NumberVector = np.zeros(
             (num_bins_y, num_bins_x), dtype=dtype
         )
         self.bin_edges_x = np.linspace(*window_x, num_bins_x + 1).squeeze()
         self.bin_edges_y = np.linspace(*window_y, num_bins_y + 1).squeeze()
+
+    def __eq__(self, other: tyx.Self) -> bool:
+        if not isinstance(other, type(self)):
+            raise TypeError("Cannot compare Histogram2D with different types.")
+        for attrib in (
+            "window_x",
+            "window_y",
+            "num_bins_x",
+            "num_bins_y",
+            "dtype",
+        ):
+            if getattr(self, attrib) != getattr(other, attrib):
+                return False
+        if not np.array_equal(self.accumulate, other.accumulate):
+            return False
+        return True
 
     @property
     def total(self) -> int:
@@ -1271,12 +1304,11 @@ class Histogram2D:
             f"[{self.window_y[0]:.3f}, "
             f"{self.window_y[1]:.3f})"
         )
-        missed = self.total - np.sum(self.accumulate).item()
         return [
             ["x-axis", xaxis],
             ["y-axis", yaxis],
             ["total", round(self.total, 3)],
-            ["missed", round(missed, 3)],
+            ["missed", round(self.missed, 3)],
             ["dtype", self.dtype],
         ]
 
@@ -1384,3 +1416,36 @@ class Histogram2D:
                 self.num_bins_y,
             ),
         )
+
+    @property
+    def missed(self) -> ty.Union[float, int]:
+        """Number of update values which fell out-of-bounds of the
+        histogram's domain.
+        """
+        return self.total - np.sum(self.accumulate).item()
+
+    def serialize(self) -> ty.Dict[str, ty.Any]:
+        """Converts ``Histogram2D`` into serialized representation."""
+        return {
+            "num_bins_x": self.num_bins_x,
+            "num_bins_y": self.num_bins_y,
+            "window_x": self.window_x,
+            "window_y": self.window_y,
+            "dtype": np.dtype(self.dtype).str,
+            "accumulate": self.accumulate.tolist(),
+            "total": self.total,
+        }
+
+    @classmethod
+    def from_serialized(cls, data: ty.Dict[str, ty.Any]) -> tyx.Self:
+        """Instantiates ``Histogram2D`` from serialized data."""
+        accumulate = data.pop("accumulate", None)
+        if accumulate is None:
+            raise ValueError("Must have `accumulate` item in data dictionary")
+        total = data.pop("total", None)
+        if total is None:
+            raise ValueError("Must have `total` item in data dictionary")
+        hist2d = cls(**data)
+        hist2d.accumulate[...] = accumulate
+        hist2d._total = total
+        return hist2d

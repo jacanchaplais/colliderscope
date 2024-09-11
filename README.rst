@@ -1,7 +1,7 @@
 colliderscope
 =============
 
-|PyPI version| |Documentation| |License| |pre-commit| |Code style:
+|PyPI version| |Tests| |Documentation| |License| |pre-commit| |Code style:
 black|
 
 Visualise your high energy physics (HEP) data with colliderscope!
@@ -36,3 +36,4 @@ More information on the API is available in the
    :target: https://github.com/pre-commit/pre-commit
 .. |Code style: black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
+.. |Tests| image:: https://github.com/jacanchaplais/colliderscope/actions/workflows/tests.yml/badge.svg
