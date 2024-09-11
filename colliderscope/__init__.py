@@ -1249,9 +1249,9 @@ class Histogram2D:
         dtype: npt.DTypeLike = np.float64,
     ) -> None:
         self.num_bins_x = num_bins_x
-        self.window_x = tuple(window_x)
+        self.window_x: ty.Tuple[float, float] = tuple(window_x)
         self.num_bins_y = num_bins_y
-        self.window_y = tuple(window_y)
+        self.window_y: ty.Tuple[float, float] = tuple(window_y)
         self.dtype = np.dtype(dtype)
         self._total = 0
         bin_width_x = abs((window_x[1] - window_x[0]) / num_bins_x)
