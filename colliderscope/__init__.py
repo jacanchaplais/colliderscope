@@ -577,6 +577,7 @@ class Histogram:
             return
         mask = np.logical_and(idx > -1, idx < self.num_bins)
         np.add.at(self.counts, idx[mask], 1)
+        self._total += idx.reshape(-1).shape[0]
 
     def to_json(
         self,
