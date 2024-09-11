@@ -677,6 +677,11 @@ class Histogram:
         """
         return self.midpoints(), self.density()
 
+    @property
+    def missed(self) -> int:
+        """Number of updates which missed the bounds of the histogram."""
+        return self.total - np.sum(self.counts).item()
+
     def density(self) -> base.DoubleVector:
         """Probability density of the histogram, normalised by the total
         count of the histogram.
@@ -1290,12 +1295,11 @@ class Histogram2D:
             f"[{self.window_y[0]:.3f}, "
             f"{self.window_y[1]:.3f})"
         )
-        missed = self.total - np.sum(self.accumulate).item()
         return [
             ["x-axis", xaxis],
             ["y-axis", yaxis],
             ["total", round(self.total, 3)],
-            ["missed", round(missed, 3)],
+            ["missed", round(self.missed, 3)],
             ["dtype", self.dtype],
         ]
 
@@ -1403,6 +1407,10 @@ class Histogram2D:
                 self.num_bins_y,
             ),
         )
+
+    @property
+    def missed(self) -> ty.Union[float, int]:
+        return self.total - np.sum(self.accumulate).item()
 
     def serialize(self) -> ty.Dict[str, ty.Any]:
         """Converts ``Histogram2D`` into serialized representation."""
