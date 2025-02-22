@@ -1058,8 +1058,8 @@ def eta_phi_network(
         )
         if colorbar_title is not None:
             marker_opts["colorbar"]["title"] = colorbar_title
-        if marker_symbols is not None:
-            marker_opts["symbol"] = marker_symbols
+    if marker_symbols is not None:
+        marker_opts["symbol"] = marker_symbols
     if radius:
         adj_matrix = pmu.delta_R(pmu) < radius
     eta = pmu.eta
