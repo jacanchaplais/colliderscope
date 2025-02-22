@@ -1039,7 +1039,7 @@ def eta_phi_network(
         Plotly figure of particles on the :math:`\\eta-\\phi` plane,
         with edges connecting adjacent particles, defined by ``radius``.
     """
-    if bool(radius) ^ bool(adj_matrix):
+    if (radius is None) and (adj_matrix is None):
         raise ValueError("Either radius or adjacency must be passed.")
     pmu = _iterable_to_momentum(pmu)
     NUM_PCLS = len(pmu)
