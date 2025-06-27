@@ -20,6 +20,10 @@ Colliderscope is a Python package for beautiful, interactive, and insightful vis
 - Hover to explore particle flows and interaction vertices
 - Use **boolean masks** to highlight specific event chains or particle types
 
+.. image:: docs/source/_static/images/hadronisation-vtx.png
+  :width: 640
+  :alt: Event DAG zoomed in on the hadronisation process.
+
 🌐 Scatter Plots in η–ϕ Space
 +++++++++++++++++++++++++++++
 
@@ -28,6 +32,10 @@ Colliderscope is a Python package for beautiful, interactive, and insightful vis
 - Toggle group visibility in the legend, and **zoom** or **pan** effortlessly
 - Apply flexible cuts on $\\eta$, $p_T$, and control whether $\\phi$ is shown in units of π
 - Supports labels, titles, and metadata for use in **Dash** or other callbacks
+
+.. image:: docs/source/_static/images/eta-phi-scatter.svg
+  :width: 640
+  :alt: Final state particles from a tt~ decay on the eta-phi plane.
 
 📊 Histogram Utilities
 ++++++++++++++++++++++
@@ -45,6 +53,10 @@ Colliderscope is a Python package for beautiful, interactive, and insightful vis
   * Overlaid datasets or probability density functions
   * Adjustable opacity for layered plots
   * Full interactivity: **tooltips**, **zoom**, and **legend toggling**
+
+.. image:: docs/source/_static/images/top-first-sift-fp.svg
+  :width: 640
+  :alt: Histogram overlays of different algorithms for top quark mass reconstructions.
 
 📦 Installation
 ---------------
