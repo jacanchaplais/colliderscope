@@ -1,31 +1,67 @@
-colliderscope
-=============
+⚛️ Colliderscope
+================
 
-|PyPI version| |Tests| |Documentation| |License| |pre-commit| |Code style:
+|DOI| |PyPI version| |Tests| |Documentation| |License| |pre-commit| |Code style:
 black|
 
-Visualise your high energy physics (HEP) data with colliderscope!
+**Bring your particle physics data to life!** ✨
 
-Features
+Colliderscope is a Python package for beautiful, interactive, and insightful visualisation of high-energy physics (HEP) data. Whether you're exploring complex event histories or slicing through pseudorapidity-azimuth space, `colliderscope` helps you understand your simulations and results visually and intuitively.
+
+🚀 Features
 --------
-Provides utilities for
 
-* interactive HTML visualisations of whole event records as directed acyclic
-  graphs (DAGs)
-* scatter plots of particles across the pseudorapidity-azimuth plane
-* creating, visualising, and fitting to fixed memory ``Histogram`` objects
+🔄 Interactive Event DAGs
++++++++++++++++++++++++++
 
-Installation
-------------
+- Visualise entire Monte Carlo event histories as **directed acyclic graphs (DAGs)** using `graphicle`
+- **Nodes** represent **interactions**; **edges** are **particles** flowing through the event
+- Final state particles are displayed as ⭐️ **star-shaped nodes** and labelled (`pi0`, `gamma`, etc.)
+- Hover to explore particle flows and interaction vertices
+- Use **boolean masks** to highlight specific event chains or particle types
+
+🌐 Scatter Plots in η–ϕ Space
++++++++++++++++++++++++++++++
+
+- Create rich interactive scatter plots of particles in **pseudorapidity (η)** vs **azimuthal angle (ϕ)** space using **Plotly**
+- Group particles by **ancestor**, **status**, or custom logic using **named masks**
+- Toggle group visibility in the legend, and **zoom** or **pan** effortlessly
+- Apply flexible cuts on $\\eta$, $p_T$, and control whether $\\phi$ is shown in units of π
+- Supports labels, titles, and metadata for use in **Dash** or other callbacks
+
+📊 Histogram Utilities
+++++++++++++++++++++++
+
+- Build memory-efficient 1D and 2D histograms with constant space usage
+- Track overflow bins and compute **normalised densities** for visualisation
+- Serialise and deserialise histograms easily for I/O or logging workflows
+
+🎨 Plot Histograms with Style
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Use `plotly` to render your histograms with options for:
+
+  * **Bar** or **line** plot styles
+  * Overlaid datasets or probability density functions
+  * Adjustable opacity for layered plots
+  * Full interactivity: **tooltips**, **zoom**, and **legend toggling**
+
+📦 Installation
+---------------
+
+Get started in seconds via PyPI:
 
 ::
 
    pip install colliderscope
 
+📚 Documentation
+----------------
 
-More information on the API is available in the
-`documentation <https://colliderscope.readthedocs.io>`__
+A full API reference is hosted in our `documentation <https://colliderscope.readthedocs.io>`__.
 
+.. |DOI| image:: https://zenodo.org/badge/424939048.svg
+  :target: https://doi.org/10.5281/zenodo.15753776
 .. |PyPI version| image:: https://img.shields.io/pypi/v/colliderscope.svg
    :target: https://pypi.org/project/colliderscope/
 .. |Documentation| image:: https://readthedocs.org/projects/colliderscope/badge/?version=latest
